@@ -34,6 +34,15 @@ class VerticalLayout:
     def rows(self) -> int:
         return max((len(c) for c in self.columns), default=0)
 
+    @property
+    def width(self) -> float:
+        n = len(self.columns)
+        return n * self.font_size + (n - 1) * self.font_size * COLUMN_GAP
+
+    @property
+    def height(self) -> float:
+        return self.rows * self.font_size
+
 
 def split_columns(text: str, chars_per_column: int) -> list[list[str]]:
     """
@@ -57,50 +66,62 @@ def split_columns(text: str, chars_per_column: int) -> list[list[str]]:
 
 def fit_vertical(
     text: str, box_w: int, box_h: int, get_font: Callable[[int], ImageFont.ImageFont],
-    max_size: int = 34, min_size: int = 14,
+    max_size: int = 34, min_size: int = 14, max_columns: int | None = None,
 ) -> VerticalLayout:
-    """box に収まる最大の文字サイズと列分けを選ぶ。収まらなければ最小サイズで返す"""
+    """
+    box に収まる最大の文字サイズと列分けを選ぶ。収まらなければ最小サイズで返す。
+    max_columns を渡すと、その列数以内に収まるサイズだけを候補にする。
+    """
     for size in range(max_size, min_size - 1, -2):
         per_column = max(1, box_h // size)
         columns = split_columns(text, per_column)
-        width = len(columns) * size + (len(columns) - 1) * size * COLUMN_GAP
+        layout = VerticalLayout(size, columns)
         # ぶら下げた1文字は余白にはみ出してよい
-        if width <= box_w and max(len(c) for c in columns) <= per_column + 1:
-            return VerticalLayout(size, columns)
+        fits_columns = max_columns is None or len(columns) <= max_columns
+        if fits_columns and layout.width <= box_w and layout.rows <= per_column + 1:
+            return layout
     return VerticalLayout(min_size, split_columns(text, max(1, box_h // min_size)))
 
 
-def _rotated_glyph(ch: str, font: ImageFont.ImageFont, size: int) -> Image.Image:
-    glyph = Image.new("L", (size, size), 0)
-    ImageDraw.Draw(glyph).text((size / 2, size / 2), ch, fill=255, font=font, anchor="mm")
+def _rotated_glyph(ch: str, font: ImageFont.ImageFont, box: int, stroke_width: int) -> Image.Image:
+    glyph = Image.new("L", (box, box), 0)
+    ImageDraw.Draw(glyph).text((box / 2, box / 2), ch, fill=255, font=font, anchor="mm",
+                               stroke_width=stroke_width, stroke_fill=255)
     return glyph.rotate(-90)
 
 
 def draw_vertical(
     draw: ImageDraw.ImageDraw, layout: VerticalLayout, font: ImageFont.ImageFont,
     center: tuple[int, int], fill: str = "black",
+    stroke_width: int = 0, stroke_fill: str | None = None,
 ) -> None:
-    """layout を center を中心に描く。列は右から左、全列とも上端をそろえる"""
+    """
+    layout を center を中心に描く。列は右から左、全列とも上端をそろえる。
+    stroke_width を渡すと stroke_fill の縁取りを付ける（効果音の白抜き文字用）。
+    """
     size = layout.font_size
     pitch = size * (1 + COLUMN_GAP)
-    block_w = len(layout.columns) * size + (len(layout.columns) - 1) * size * COLUMN_GAP
-    block_h = layout.rows * size
-    right = center[0] + block_w / 2
-    top = center[1] - block_h / 2
+    right = center[0] + layout.width / 2
+    top = center[1] - layout.height / 2
+    stroke = {"stroke_width": stroke_width, "stroke_fill": stroke_fill} if stroke_width else {}
 
     for col_index, column in enumerate(layout.columns):
         cx = right - col_index * pitch - size / 2
         for row, ch in enumerate(column):
             cy = top + row * size + size / 2
             if ch in ROTATED:
-                draw.bitmap((round(cx - size / 2), round(cy - size / 2)),
-                            _rotated_glyph(ch, font, size), fill=fill)
-            elif ch in PUNCTUATION:
+                box = size + 2 * stroke_width
+                corner = (round(cx - box / 2), round(cy - box / 2))
+                # 縁取りを先に塗り、その上に文字本体を重ねる
+                if stroke_width:
+                    draw.bitmap(corner, _rotated_glyph(ch, font, box, stroke_width), fill=stroke_fill)
+                draw.bitmap(corner, _rotated_glyph(ch, font, box, 0), fill=fill)
+                continue
+            if ch in PUNCTUATION:
                 # 横書き用の字形は升目の左下にあるので、升目ごと右上へずらして右上に置く
-                draw.text((cx + size * PUNCT_SHIFT, cy - size * PUNCT_SHIFT), ch,
-                          fill=fill, font=font, anchor="mm")
+                xy = (cx + size * PUNCT_SHIFT, cy - size * PUNCT_SHIFT)
             elif ch in SMALL_KANA:
-                draw.text((cx + size * SMALL_KANA_SHIFT, cy - size * SMALL_KANA_SHIFT), ch,
-                          fill=fill, font=font, anchor="mm")
+                xy = (cx + size * SMALL_KANA_SHIFT, cy - size * SMALL_KANA_SHIFT)
             else:
-                draw.text((cx, cy), ch, fill=fill, font=font, anchor="mm")
+                xy = (cx, cy)
+            draw.text(xy, ch, fill=fill, font=font, anchor="mm", **stroke)

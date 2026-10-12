@@ -103,6 +103,7 @@ manga-app/
 - **3-D** MCP サーバー: ✅ `backend/mcp_server.py`（`.mcp.json` で登録）。Web API と同じ `services/generation_service.py` を呼ぶ
 - **3-C** 縦書き吹き出し: ✅ `services/vertical_text.py`（libraqm が無いので1文字ずつ配置。句読点は右上、長音・括弧は回転、行頭禁則はぶら下げ）。
   `SpeechBubble.orientation`（auto / vertical / horizontal、auto は縦長なら縦書き）。ネーム生成の指示も縦長・縦書きに変更
+  効果音も縦書き（`Panel.sound_effect_orientation`、既定 vertical）。白抜き＋黒縁で右端に1列、吹き出しと重なるなら左端
 
 ### Phase 4: 本番化基盤（必要時）
 Docker、Postgres + SQLAlchemy + Alembic、pytest / Vitest / GitHub Actions、認証、Railway / Fly.io デプロイ

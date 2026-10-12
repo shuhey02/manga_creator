@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 
-from app.models.schemas import SpeechBubble, SpeechBubblePosition
-from app.services.image_assembler import _draw_bubble, _get_font, _is_vertical
+from app.models.schemas import Panel, PanelLayout, SpeechBubble, SpeechBubblePosition
+from app.services.image_assembler import _draw_bubble, _draw_sfx, _get_font, _is_vertical
 from app.services.vertical_text import draw_vertical, fit_vertical, split_columns
 
 
@@ -66,3 +66,38 @@ def test_vertical_bubble_text_is_taller_than_wide():
     # 吹き出しの枠を除き、内側の文字だけを測る
     x0, y0, x1, y1 = _ink_bbox(img.crop((175, 60, 225, 330)))
     assert y1 - y0 > 3 * (x1 - x0)
+
+
+def _sfx_panel(**kwargs) -> Panel:
+    return Panel(panel_number=1, layout=PanelLayout(x=0, y=0, width=100, height=100),
+                 sound_effect="ドォン", **kwargs)
+
+
+def _sfx_ink(panel: Panel) -> tuple[int, int, int, int]:
+    """灰色の背景に効果音だけを描き、白抜き文字の位置を返す"""
+    img = Image.new("RGB", (400, 600), (128, 128, 128))
+    _draw_sfx(ImageDraw.Draw(img), panel, 0, 0, 400, 600)
+    return img.convert("L").point(lambda v: 255 if v > 200 else 0).getbbox()
+
+
+def test_sfx_is_vertical_along_the_right_edge_by_default():
+    x0, y0, x1, y1 = _sfx_ink(_sfx_panel())
+    assert x0 > 200
+    assert y1 - y0 > 2 * (x1 - x0)
+
+
+def test_sfx_moves_to_the_left_edge_when_a_bubble_is_on_the_right():
+    bubble = SpeechBubble(text="わっ", position=SpeechBubblePosition(x=75, y=0, width=25, height=60))
+    x0, _, x1, _ = _sfx_ink(_sfx_panel(speech_bubbles=[bubble]))
+    assert x1 < 200
+
+
+def test_horizontal_sfx_keeps_the_old_layout():
+    x0, y0, x1, y1 = _sfx_ink(_sfx_panel(sound_effect_orientation="horizontal"))
+    assert x1 - x0 > y1 - y0
+
+
+def test_sfx_stays_in_one_column_when_it_fits():
+    layout = fit_vertical("ヴォォォン", 120, 420, _get_font, max_size=80, min_size=20, max_columns=1)
+    assert len(layout.columns) == 1
+    assert layout.height <= 420

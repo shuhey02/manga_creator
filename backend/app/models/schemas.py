@@ -61,6 +61,7 @@ class Panel(BaseModel):
     expression: str = ""
     dialogue: str = ""
     sound_effect: str = ""
+    sound_effect_orientation: Literal["vertical", "horizontal"] = "vertical"
     image_prompt_en: str = ""
     image_prompt_ja: str = ""
     speech_bubbles: list[SpeechBubble] = []

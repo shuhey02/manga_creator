@@ -36,6 +36,7 @@ export interface Panel {
   expression: string;
   dialogue: string;
   sound_effect: string;
+  sound_effect_orientation?: "vertical" | "horizontal";
   image_prompt_en: string;
   image_prompt_ja: string;
   speech_bubbles: SpeechBubble[];

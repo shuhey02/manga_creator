@@ -12,7 +12,7 @@
 | キャラ参照シート | 登場キャラ全員の設定画を先に作り、ページ間で顔・服装をそろえる |
 | MCP サーバー | Claude Code / Codex からネーム登録〜生成〜書き出しをツールとして呼べる |
 | 手動画像アップロード | 外部生成した画像をコマ単位でアップロード |
-| ページ自動合成 | コマ配置・吹き出し・効果音をPillowで自動合成。セリフは**縦書き**（吹き出しの `orientation`: auto / vertical / horizontal） |
+| ページ自動合成 | コマ配置・吹き出し・効果音をPillowで自動合成。セリフは**縦書き**（吹き出しの `orientation`: auto / vertical / horizontal）。効果音も縦書き（`sound_effect_orientation`） |
 | PDF/CBZエクスポート | Kindle用CBZ（コミックアーカイブ）またはPDFとして出力 |
 
 ## スクリーンショット

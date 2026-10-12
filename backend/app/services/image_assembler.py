@@ -84,14 +84,17 @@ def _is_vertical(bubble: SpeechBubble, bw: int, bh: int) -> bool:
     return bubble.orientation == "vertical"
 
 
+def _bubble_rect(bubble: SpeechBubble, px: int, py: int, pw: int, ph: int) -> tuple[int, int, int, int]:
+    """吹き出しの (x, y, 幅, 高さ)。位置はコマ内のパーセント"""
+    pos = bubble.position
+    return (px + int(pos.x / 100 * pw), py + int(pos.y / 100 * ph),
+            int(pos.width / 100 * pw), int(pos.height / 100 * ph))
+
+
 def _draw_bubble(draw: ImageDraw.ImageDraw, bubble: SpeechBubble,
                  px: int, py: int, pw: int, ph: int) -> None:
     """吹き出しを描画する"""
-    pos = bubble.position
-    bx = px + int(pos.x / 100 * pw)
-    by = py + int(pos.y / 100 * ph)
-    bw = int(pos.width / 100 * pw)
-    bh = int(pos.height / 100 * ph)
+    bx, by, bw, bh = _bubble_rect(bubble, px, py, pw, ph)
 
     if bw < 12 or bh < 10:
         return
@@ -176,9 +179,18 @@ def _draw_bubble(draw: ImageDraw.ImageDraw, bubble: SpeechBubble,
                   fill="black", font=font, anchor="mt")
 
 
-def _draw_sfx(draw: ImageDraw.ImageDraw, text: str,
+def _overlaps(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> bool:
+    """(x0, y0, x1, y1) 同士が重なるか"""
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def _draw_sfx(draw: ImageDraw.ImageDraw, panel: Panel,
               px: int, py: int, pw: int, ph: int) -> None:
-    """効果音を描画する"""
+    """効果音を描画する（白抜き文字＋黒の縁取り）"""
+    text = panel.sound_effect
+    if panel.sound_effect_orientation == "vertical":
+        _draw_vertical_sfx(draw, panel, px, py, pw, ph)
+        return
     font = _get_font(36)
     tx = px + pw - 6
     ty = py + 6
@@ -187,6 +199,31 @@ def _draw_sfx(draw: ImageDraw.ImageDraw, text: str,
         for dy in [-1, 0, 1]:
             draw.text((tx + dx, ty + dy), text, fill="black", font=font, anchor="ra")
     draw.text((tx, ty), text, fill="white", font=font, anchor="ra")
+
+
+def _draw_vertical_sfx(draw: ImageDraw.ImageDraw, panel: Panel,
+                       px: int, py: int, pw: int, ph: int) -> None:
+    """
+    効果音を縦書きでコマの右端に沿って上から置く。吹き出しと重なるなら左端に置く
+    （ネーム生成は先に読む吹き出しを右上に置くため、右端がふさがっていることが多い）。
+    """
+    box = (int(pw * 0.3), int(ph * 0.7))
+    # 効果音は1列で一気に読ませる。1列に収まらないほど長いときだけ折り返す
+    layout = fit_vertical(panel.sound_effect, *box, _get_font, max_size=80, min_size=20, max_columns=1)
+    if len(layout.columns) > 1:
+        layout = fit_vertical(panel.sound_effect, *box, _get_font, max_size=80, min_size=20)
+    margin = max(8, int(min(pw, ph) * 0.04))
+    w, h = layout.width, layout.height
+    right_side = (px + pw - margin - w, py + margin, px + pw - margin, py + margin + h)
+    left_side = (px + margin, py + margin, px + margin + w, py + margin + h)
+    bubbles = [(x, y, x + bw, y + bh) for x, y, bw, bh in
+               (_bubble_rect(b, px, py, pw, ph) for b in panel.speech_bubbles)]
+    blocked = any(_overlaps(right_side, b) for b in bubbles)
+    x0, y0, x1, y1 = left_side if blocked else right_side
+
+    size = layout.font_size
+    draw_vertical(draw, layout, _get_font(size), (round((x0 + x1) / 2), round((y0 + y1) / 2)),
+                  fill="white", stroke_width=max(2, size // 10), stroke_fill="black")
 
 
 def _assemble_on_generated(generated: Image.Image, page_data: MangaPage) -> Image.Image:
@@ -207,7 +244,7 @@ def _assemble_on_generated(generated: Image.Image, page_data: MangaPage) -> Imag
         pw = int(lo.width / 100 * sw)
         ph = int(lo.height / 100 * sh)
         if panel.sound_effect:
-            _draw_sfx(draw, panel.sound_effect, px, py, pw, ph)
+            _draw_sfx(draw, panel, px, py, pw, ph)
         for bubble in panel.speech_bubbles:
             _draw_bubble(draw, bubble, px, py, pw, ph)
     return page
@@ -288,7 +325,7 @@ def assemble_page(session_dir: Path, page_data: MangaPage) -> Path:
 
         # 効果音
         if panel.sound_effect:
-            _draw_sfx(draw, panel.sound_effect, px, py, pw, ph)
+            _draw_sfx(draw, panel, px, py, pw, ph)
 
         # 吹き出し
         for bubble in panel.speech_bubbles:
