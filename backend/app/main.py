@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .api.assembly import router as assembly_router
 from .api.export_api import router as export_router
+from .api.generation import router as generation_router
 from .api.storyboard import router as storyboard_router
 from .config import settings
 
@@ -22,7 +23,7 @@ app = FastAPI(
 # ─── CORS設定（開発環境用） ───────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,9 +33,10 @@ app.add_middleware(
 app.include_router(storyboard_router)
 app.include_router(assembly_router)
 app.include_router(export_router)
+app.include_router(generation_router)
 
 # ─── 静的ファイル配信（合成済みページ画像・エクスポートファイル） ─────────────
-output_dir = Path(settings.output_dir)
+output_dir = settings.output_path
 output_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/output", StaticFiles(directory=str(output_dir)), name="output")
 
@@ -50,4 +52,8 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "api_key_set": bool(settings.anthropic_api_key)}
+    return {
+        "status": "ok",
+        "api_key_set": bool(settings.anthropic_api_key),
+        "image_provider": settings.image_provider,
+    }

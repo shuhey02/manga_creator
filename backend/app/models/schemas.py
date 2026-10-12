@@ -62,18 +62,24 @@ class Panel(BaseModel):
     image_prompt_en: str = ""
     image_prompt_ja: str = ""
     speech_bubbles: list[SpeechBubble] = []
+    # AI 生成ページ上で実際に描かれたコマ枠（生成画像全体に対する 0〜100%）
+    rendered_layout: Optional[PanelLayout] = None
 
 
 class MangaPage(BaseModel):
     page_number: int
     page_notes: str = ""
     panels: list[Panel] = []
+    # AI 生成したページ画像（セッションディレクトリからの相対パス）
+    generated_image: Optional[str] = None
 
 
 class Character(BaseModel):
     name: str
     description: str
     prompt_keywords: str
+    # キャラ参照シート（セッションディレクトリからの相対パス）
+    reference_image: Optional[str] = None
 
 
 class Storyboard(BaseModel):
@@ -107,6 +113,26 @@ class AssemblePageResponse(BaseModel):
 class AssembleAllResponse(BaseModel):
     session_id: str
     pages: list[AssemblePageResponse]
+
+
+class GeneratePageRequest(BaseModel):
+    session_id: str
+    page_number: int
+    use_character_refs: bool = True
+
+
+class GenerateCharactersRequest(BaseModel):
+    session_id: str
+
+
+class GenerationJob(BaseModel):
+    job_id: str = Field(default_factory=lambda: str(uuid4()))
+    session_id: str
+    kind: str = Field(..., description="page|characters")
+    page_number: Optional[int] = None
+    status: str = Field(default="queued", description="queued|running|done|error")
+    image_urls: list[str] = []
+    error: Optional[str] = None
 
 
 class ExportResponse(BaseModel):

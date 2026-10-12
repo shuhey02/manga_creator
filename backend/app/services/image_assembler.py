@@ -176,6 +176,30 @@ def _draw_sfx(draw: ImageDraw.ImageDraw, text: str,
     draw.text((tx, ty), text, fill="white", font=font, anchor="ra")
 
 
+def _assemble_on_generated(generated: Image.Image, page_data: MangaPage) -> Image.Image:
+    """AI 生成ページを縦横比を保って A4 に収め、検出済みのコマ枠に吹き出しを重ねる"""
+    gw, gh = generated.size
+    scale = min(PAGE_WIDTH / gw, PAGE_HEIGHT / gh)
+    sw, sh = round(gw * scale), round(gh * scale)
+    ox, oy = (PAGE_WIDTH - sw) // 2, (PAGE_HEIGHT - sh) // 2
+
+    page = Image.new("RGB", (PAGE_WIDTH, PAGE_HEIGHT), color="white")
+    page.paste(generated.convert("RGB").resize((sw, sh), Image.LANCZOS), (ox, oy))
+    draw = ImageDraw.Draw(page)
+
+    for panel in page_data.panels:
+        lo = panel.rendered_layout or panel.layout
+        px = ox + int(lo.x / 100 * sw)
+        py = oy + int(lo.y / 100 * sh)
+        pw = int(lo.width / 100 * sw)
+        ph = int(lo.height / 100 * sh)
+        if panel.sound_effect:
+            _draw_sfx(draw, panel.sound_effect, px, py, pw, ph)
+        for bubble in panel.speech_bubbles:
+            _draw_bubble(draw, bubble, px, py, pw, ph)
+    return page
+
+
 def assemble_page(session_dir: Path, page_data: MangaPage) -> Path:
     """
     1ページ分の漫画ページを合成する。
@@ -188,6 +212,11 @@ def assemble_page(session_dir: Path, page_data: MangaPage) -> Path:
         合成済みページPNGのパス
     """
     page_num = page_data.page_number
+    generated_path = session_dir / page_data.generated_image if page_data.generated_image else None
+    if generated_path and generated_path.exists():
+        page = _assemble_on_generated(Image.open(generated_path), page_data)
+        return _save_page(session_dir, page, page_num)
+
     page = Image.new("RGB", (PAGE_WIDTH, PAGE_HEIGHT), color="white")
     draw = ImageDraw.Draw(page)
 
@@ -260,7 +289,10 @@ def assemble_page(session_dir: Path, page_data: MangaPage) -> Path:
         fill="black", font=pg_font, anchor="mm",
     )
 
-    # 保存
+    return _save_page(session_dir, page, page_num)
+
+
+def _save_page(session_dir: Path, page: Image.Image, page_num: int) -> Path:
     out_dir = session_dir / "pages"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"page_{page_num:03d}.png"

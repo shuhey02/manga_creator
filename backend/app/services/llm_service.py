@@ -5,6 +5,8 @@ import json
 import re
 from typing import Optional
 import anthropic
+from pydantic import ValidationError
+
 from ..config import settings
 from ..models.schemas import Storyboard
 
@@ -127,28 +129,36 @@ async def generate_storyboard(
 ) -> Storyboard:
     """Claude API を呼び出してネーム（storyboard）を生成する"""
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+    messages = [
+        {
+            "role": "user",
+            "content": _build_user_prompt(title, story, genre, style, num_pages),
+        }
+    ]
 
-    message = client.messages.create(
-        model=settings.claude_model,
-        max_tokens=8192,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": _build_user_prompt(title, story, genre, style, num_pages),
-            }
-        ],
-    )
-
-    raw_text = message.content[0].text
-    json_str = _extract_json(raw_text)
-
-    try:
-        data = json.loads(json_str)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"LLMからの応答をJSONとして解析できませんでした: {e}\n応答: {raw_text[:500]}")
-
-    # Pydanticモデルで検証・変換
-    storyboard = Storyboard(**data)
-    return storyboard
+    # JSON が壊れていたら、エラー内容を添えて1回だけ直させる
+    for attempt in range(2):
+        message = await client.messages.create(
+            model=settings.claude_model,
+            max_tokens=8192,
+            system=SYSTEM_PROMPT,
+            messages=messages,
+        )
+        raw_text = message.content[0].text
+        try:
+            return Storyboard(**json.loads(_extract_json(raw_text)))
+        except (json.JSONDecodeError, ValidationError) as e:
+            if attempt == 1:
+                raise ValueError(
+                    f"LLMからの応答をネームとして解析できませんでした: {e}\n応答: {raw_text[:500]}"
+                )
+            messages += [
+                {"role": "assistant", "content": raw_text},
+                {
+                    "role": "user",
+                    "content": f"出力をスキーマ通りのJSONとして解析できませんでした: {e}\n"
+                    "修正した完全なJSONだけを出力してください。",
+                },
+            ]
+    raise AssertionError("unreachable")
