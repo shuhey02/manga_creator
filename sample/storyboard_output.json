@@ -1,0 +1,318 @@
+{
+  "title": "異世界転送の少年",
+  "genre": "少年漫画",
+  "style": "標準的な漫画スタイル",
+  "characters": [
+    {
+      "name": "田中ケンジ",
+      "description": "17歳の高校生。黒髪短髪、学校の制服を着ている。真面目だが好奇心旺盛な性格。",
+      "prompt_keywords": "17 year old japanese boy, black short hair, school uniform, determined brown eyes, manga style"
+    },
+    {
+      "name": "アリア",
+      "description": "16歳のエルフの少女。銀髪のポニーテール、尖った耳、軽鎧を着用。勇敢で使命感が強い。",
+      "prompt_keywords": "16 year old elf girl, silver ponytail hair, pointed ears, light armor, silver short sword, blue eyes, manga style"
+    }
+  ],
+  "pages": [
+    {
+      "page_number": 1,
+      "page_notes": "日常から非日常への転換。静から動への対比を意識する。",
+      "panels": [
+        {
+          "panel_number": 1,
+          "layout": { "x": 0, "y": 0, "width": 100, "height": 35 },
+          "composition": "教室全体を俯瞰で映す。朝の光が差し込む穏やかな雰囲気",
+          "camera_angle": "俯瞰",
+          "background": "窓から朝日が差し込む高校の教室。黒板と整然と並ぶ机",
+          "characters": ["田中ケンジ"],
+          "expression": "ケンジが机の下に光る石を発見し、不思議そうにしゃがみ込んでいる",
+          "dialogue": "",
+          "sound_effect": "",
+          "image_prompt_en": "high school classroom interior, morning sunlight through windows, rows of desks, blackboard, bird's eye view, 17 year old japanese boy black short hair school uniform crouching to pick up glowing stone, curious expression, manga style, detailed background, black and white",
+          "image_prompt_ja": "高校の教室内、窓から朝日、机が整然と並ぶ、黒板、俯瞰アングル、黒髪短髪制服17歳少年が光る石を拾おうとしゃがむ、不思議そうな表情、漫画スタイル、白黒",
+          "speech_bubbles": []
+        },
+        {
+          "panel_number": 2,
+          "layout": { "x": 0, "y": 35, "width": 55, "height": 40 },
+          "composition": "ケンジのクローズアップ。手のひらに光る石を乗せて見つめている",
+          "camera_angle": "クローズアップ",
+          "background": "ぼかした教室背景",
+          "characters": ["田中ケンジ"],
+          "expression": "不思議そうに石を眺める表情。石から淡い光が放たれている",
+          "dialogue": "なんだ、これ…？",
+          "sound_effect": "",
+          "image_prompt_en": "close-up 17 year old japanese boy black short hair school uniform, holding glowing magical stone in palm, puzzled curious expression, soft light emanating from stone, blurred classroom background, manga style, detailed face, black and white",
+          "image_prompt_ja": "クローズアップ、黒髪制服17歳少年、手のひらに光る魔法の石を乗せて見る、不思議そうな表情、石から淡い光、ぼかした教室背景、漫画スタイル、白黒",
+          "speech_bubbles": [
+            {
+              "text": "なんだ、これ…？",
+              "type": "normal",
+              "position": { "x": 55, "y": 5, "width": 40, "height": 22 }
+            }
+          ]
+        },
+        {
+          "panel_number": 3,
+          "layout": { "x": 55, "y": 35, "width": 45, "height": 40 },
+          "composition": "石が突然強烈な光を放つ。ケンジが目を覆うほどの眩しさ",
+          "camera_angle": "正面",
+          "background": "強烈な白い光に教室が包まれる",
+          "characters": ["田中ケンジ"],
+          "expression": "驚きと恐怖で目を覆い、体が後ずさりしている",
+          "dialogue": "わっ！",
+          "sound_effect": "ドォン",
+          "image_prompt_en": "17 year old japanese boy black short hair school uniform, covering eyes with arm, blinding white light explosion from magical stone, intense dramatic lighting, shocked expression, motion blur, manga style, dynamic lines, black and white",
+          "image_prompt_ja": "黒髪制服17歳少年、石から眩しい白い光の爆発、腕で目を覆う、強烈なドラマティック光、驚愕の表情、動きのブラー、漫画スタイル、集中線、白黒",
+          "speech_bubbles": [
+            {
+              "text": "わっ！",
+              "type": "shout",
+              "position": { "x": 10, "y": 5, "width": 35, "height": 18 }
+            }
+          ]
+        },
+        {
+          "panel_number": 4,
+          "layout": { "x": 0, "y": 75, "width": 100, "height": 25 },
+          "composition": "白い光に飲み込まれるケンジの全身シルエット。転送シーン",
+          "camera_angle": "正面・全身",
+          "background": "真っ白な光の空間。渦巻くエネルギー",
+          "characters": ["田中ケンジ"],
+          "expression": "光に包まれて消えていくシルエット",
+          "dialogue": "",
+          "sound_effect": "ヴォォォン",
+          "image_prompt_en": "silhouette of 17 year old boy being engulfed in swirling white magical light, teleportation effect, dramatic energy vortex, full body shot, manga style, strong contrast, speed lines, black and white",
+          "image_prompt_ja": "17歳少年のシルエットが渦巻く白い魔法の光に飲み込まれる、テレポート演出、ドラマティックなエネルギー渦、全身ショット、漫画スタイル、強いコントラスト、集中線、白黒",
+          "speech_bubbles": []
+        }
+      ]
+    },
+    {
+      "page_number": 2,
+      "page_notes": "異世界初登場。広大さと驚きを表現。アリアとの出会い。",
+      "panels": [
+        {
+          "panel_number": 1,
+          "layout": { "x": 0, "y": 0, "width": 100, "height": 45 },
+          "composition": "広大な異世界の草原の全景。古代の神殿遺跡が背景に。ケンジが地面に倒れている",
+          "camera_angle": "俯瞰・広角",
+          "background": "広大な草原、遠くに古代神殿の廃墟、異世界の空（2つの太陽）",
+          "characters": ["田中ケンジ"],
+          "expression": "草原に倒れて混乱しているケンジ",
+          "dialogue": "ここ……どこだ？",
+          "sound_effect": "",
+          "image_prompt_en": "vast fantasy grassland, ancient temple ruins in background, two suns in alien sky, 17 year old japanese boy black short hair school uniform lying on ground confused, wide angle aerial view, epic scale, manga style, detailed background, black and white",
+          "image_prompt_ja": "広大なファンタジー草原、背景に古代神殿の廃墟、異世界の空に2つの太陽、黒髪制服17歳少年が地面に倒れて混乱、広角俯瞰、壮大なスケール、漫画スタイル、詳細な背景、白黒",
+          "speech_bubbles": [
+            {
+              "text": "ここ……どこだ？",
+              "type": "normal",
+              "position": { "x": 55, "y": 60, "width": 40, "height": 22 }
+            }
+          ]
+        },
+        {
+          "panel_number": 2,
+          "layout": { "x": 0, "y": 45, "width": 45, "height": 55 },
+          "composition": "アリアが剣を構えてケンジを警戒している。下からのアオリ構図で迫力を出す",
+          "camera_angle": "アオリ",
+          "background": "草原の地面、空が見える",
+          "characters": ["アリア"],
+          "expression": "警戒しつつも希望に満ちた目でケンジを見る。剣を構えている",
+          "dialogue": "動くな！……いや、待って。あなたが……勇者？",
+          "sound_effect": "",
+          "image_prompt_en": "16 year old elf girl silver ponytail hair pointed ears light armor silver short sword, holding sword in battle stance, looking down with cautious but hopeful expression, low angle shot looking up, fantasy grassland background, manga style, dynamic pose, black and white",
+          "image_prompt_ja": "銀髪ポニーテール尖った耳軽鎧銀剣16歳エルフ少女、剣を構えた戦闘姿勢、慎重だが希望を持った眼差しで見下ろす、アオリ構図、ファンタジー草原背景、漫画スタイル、ダイナミックなポーズ、白黒",
+          "speech_bubbles": [
+            {
+              "text": "動くな！",
+              "type": "shout",
+              "position": { "x": 5, "y": 5, "width": 50, "height": 18 }
+            },
+            {
+              "text": "……いや、待って。あなたが……勇者？",
+              "type": "normal",
+              "position": { "x": 5, "y": 28, "width": 85, "height": 22 }
+            }
+          ]
+        },
+        {
+          "panel_number": 3,
+          "layout": { "x": 45, "y": 45, "width": 55, "height": 55 },
+          "composition": "ケンジとアリアの2ショット。ケンジが起き上がりアリアに向き合う",
+          "camera_angle": "正面・2ショット",
+          "background": "草原、遠くの廃墟",
+          "characters": ["田中ケンジ", "アリア"],
+          "expression": "ケンジは混乱した表情、アリアは驚きと期待が混じった表情",
+          "dialogue": "え…？勇者って何ですか？ここどこ？",
+          "sound_effect": "",
+          "image_prompt_en": "two characters facing each other, 17 year old japanese boy black short hair school uniform sitting up confused, 16 year old elf girl silver ponytail hair light armor sword lowered, grassland background with ruins, manga style, two-shot composition, black and white",
+          "image_prompt_ja": "向き合う2人、起き上がった混乱した黒髪制服17歳少年、剣を下げた銀髪エルフ少女16歳、廃墟のある草原背景、漫画スタイル、2ショット構図、白黒",
+          "speech_bubbles": [
+            {
+              "text": "え…？勇者って何？ここどこ？",
+              "type": "normal",
+              "position": { "x": 5, "y": 5, "width": 80, "height": 22 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page_number": 3,
+      "page_notes": "説明パート。アリアの切迫した表情と世界観の紹介。",
+      "panels": [
+        {
+          "panel_number": 1,
+          "layout": { "x": 0, "y": 0, "width": 60, "height": 45 },
+          "composition": "アリアの上半身クローズアップ。真剣な顔で語る",
+          "camera_angle": "クローズアップ",
+          "background": "空と草原",
+          "characters": ["アリア"],
+          "expression": "真剣で切迫した表情。少し涙ぐんでいる",
+          "dialogue": "この世界エルドラはいま、魔王ザルゴスの軍勢に蹂躙されている。",
+          "sound_effect": "",
+          "image_prompt_en": "close-up 16 year old elf girl silver ponytail hair pointed ears light armor, serious urgent emotional expression, slight tears in eyes, sky and grassland background, manga style, detailed face, black and white",
+          "image_prompt_ja": "クローズアップ、銀髪ポニーテール尖った耳軽鎧16歳エルフ少女、真剣で切迫した感情的な表情、目に少し涙、空と草原背景、漫画スタイル、詳細な顔、白黒",
+          "speech_bubbles": [
+            {
+              "text": "この世界エルドラはいま、魔王ザルゴスの軍勢に蹂躙されている。",
+              "type": "normal",
+              "position": { "x": 5, "y": 5, "width": 88, "height": 28 }
+            }
+          ]
+        },
+        {
+          "panel_number": 2,
+          "layout": { "x": 60, "y": 0, "width": 40, "height": 45 },
+          "composition": "ケンジのリアクション。石をまだ握っている。信じられないという顔",
+          "camera_angle": "正面",
+          "background": "ぼかし背景",
+          "characters": ["田中ケンジ"],
+          "expression": "信じられないという顔で石を見る",
+          "dialogue": "魔王って……マジか。",
+          "sound_effect": "",
+          "image_prompt_en": "17 year old japanese boy black short hair school uniform, disbelieving shocked expression, holding glowing stone in hand, blurred background, manga style, black and white",
+          "image_prompt_ja": "黒髪制服17歳少年、信じられない驚いた表情、手に光る石を持つ、ぼかし背景、漫画スタイル、白黒",
+          "speech_bubbles": [
+            {
+              "text": "魔王って……マジか。",
+              "type": "normal",
+              "position": { "x": 5, "y": 5, "width": 88, "height": 22 }
+            }
+          ]
+        },
+        {
+          "panel_number": 3,
+          "layout": { "x": 0, "y": 45, "width": 100, "height": 30 },
+          "composition": "地平線の向こうに黒煙が上がり、魔軍の影が見える全景ショット",
+          "camera_angle": "正面・広角",
+          "background": "草原の地平線に黒煙、遠くに無数の魔物の影のシルエット、暗い空",
+          "characters": [],
+          "expression": "",
+          "dialogue": "",
+          "sound_effect": "ドドドドド",
+          "image_prompt_en": "wide shot grassland horizon, black smoke rising in distance, silhouettes of vast demon army approaching, dark ominous sky, epic scale, dramatic composition, manga style, black and white, atmospheric",
+          "image_prompt_ja": "草原の水平線の広角ショット、遠くに上がる黒煙、巨大な魔軍のシルエットが迫る、暗く不吉な空、壮大なスケール、ドラマティックな構図、漫画スタイル、白黒、雰囲気のある",
+          "speech_bubbles": []
+        },
+        {
+          "panel_number": 4,
+          "layout": { "x": 0, "y": 75, "width": 100, "height": 25 },
+          "composition": "アリアが真剣な目でケンジを見る。説得するシーン",
+          "camera_angle": "正面",
+          "background": "草原",
+          "characters": ["アリア"],
+          "expression": "真っ直ぐ前を見据えた決然とした眼差し",
+          "dialogue": "あなたは予言の勇者。この石があなたを選んだ。お願い……一緒に戦って！",
+          "sound_effect": "",
+          "image_prompt_en": "16 year old elf girl silver ponytail hair pointed ears light armor, looking straight forward with determined resolved expression, holding out hand in plea, grassland background, manga style, black and white",
+          "image_prompt_ja": "銀髪ポニーテール尖った耳軽鎧16歳エルフ少女、決然とした眼差しで正面を見据える、懇願するように手を差し出す、草原背景、漫画スタイル、白黒",
+          "speech_bubbles": [
+            {
+              "text": "あなたは予言の勇者。この石があなたを選んだ。お願い……一緒に戦って！",
+              "type": "normal",
+              "position": { "x": 5, "y": 5, "width": 88, "height": 28 }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page_number": 4,
+      "page_notes": "クライマックス。ドラゴン出現とケンジの覚醒・決意。引きの強い終わり方。",
+      "panels": [
+        {
+          "panel_number": 1,
+          "layout": { "x": 0, "y": 0, "width": 100, "height": 40 },
+          "composition": "巨大なドラゴンが空から急降下してくる迫力の全景。圧倒的な大きさ",
+          "camera_angle": "仰角・広角",
+          "background": "暗雲立ち込める空、炎をまとった巨大なドラゴン",
+          "characters": ["田中ケンジ", "アリア"],
+          "expression": "ドラゴンに圧倒されて後ずさりする2人のシルエット",
+          "dialogue": "",
+          "sound_effect": "ガァァァァ！",
+          "image_prompt_en": "massive fire dragon diving from dark sky, enormous scale, two small silhouettes of boy and elf girl running below, dramatic low angle looking up, flames and smoke, epic battle scene, manga style, intense motion lines, black and white",
+          "image_prompt_ja": "暗い空から急降下する巨大な火竜、圧倒的なスケール、下に逃げる少年とエルフ少女の小さなシルエット、アオリ構図、炎と煙、壮大な戦闘シーン、漫画スタイル、激しい集中線、白黒",
+          "speech_bubbles": []
+        },
+        {
+          "panel_number": 2,
+          "layout": { "x": 0, "y": 40, "width": 45, "height": 35 },
+          "composition": "アリアが叫びながら剣を構える。恐怖しながらも立ち向かおうとしている",
+          "camera_angle": "斜め下から",
+          "background": "炎の光が当たる",
+          "characters": ["アリア"],
+          "expression": "恐怖と勇気が混じった表情で叫んでいる",
+          "dialogue": "逃げて！あいつは私が！",
+          "sound_effect": "",
+          "image_prompt_en": "16 year old elf girl silver ponytail hair pointed ears light armor, battle stance with sword raised, fearful but brave expression screaming, lit by dragon fire light, dynamic angle from below, manga style, black and white",
+          "image_prompt_ja": "銀髪ポニーテール尖った耳軽鎧16歳エルフ少女、剣を振り上げた戦闘姿勢、恐怖と勇気が混じった叫び顔、竜の炎の光に照らされる、下からのダイナミックアングル、漫画スタイル、白黒",
+          "speech_bubbles": [
+            {
+              "text": "逃げて！あいつは私が！",
+              "type": "shout",
+              "position": { "x": 5, "y": 5, "width": 88, "height": 22 }
+            }
+          ]
+        },
+        {
+          "panel_number": 3,
+          "layout": { "x": 45, "y": 40, "width": 55, "height": 35 },
+          "composition": "ケンジが石を握りしめる手のアップ。石が強く光っている",
+          "camera_angle": "クローズアップ",
+          "background": "炎の光",
+          "characters": ["田中ケンジ"],
+          "expression": "石を握る手のアップ。石から眩しい光が溢れ出している",
+          "dialogue": "",
+          "sound_effect": "ドクン",
+          "image_prompt_en": "extreme close-up of clenched fist holding intensely glowing magical stone, bright light radiating from stone, school uniform sleeve visible, dramatic lighting from fire, manga style, detailed hands, black and white",
+          "image_prompt_ja": "光る魔法の石を握りしめた手の超クローズアップ、石から眩しい光が溢れ出す、制服の袖が見える、炎からのドラマティックな照明、漫画スタイル、詳細な手、白黒",
+          "speech_bubbles": []
+        },
+        {
+          "panel_number": 4,
+          "layout": { "x": 0, "y": 75, "width": 100, "height": 25 },
+          "composition": "ケンジの正面バストショット。目が光り、決意の表情。石から光が全身に広がる演出",
+          "camera_angle": "正面・バストショット",
+          "background": "光のエフェクトで背景が溢れる",
+          "characters": ["田中ケンジ"],
+          "expression": "静かで強い決意の眼差し。目が少し光っている。口元に薄い笑み",
+          "dialogue": "……逃げない。",
+          "sound_effect": "",
+          "image_prompt_en": "bust shot 17 year old japanese boy black short hair school uniform, calm determined expression with glowing eyes, slight confident smile, magical light energy radiating from body, dramatic backlight, manga style, hero awakening scene, black and white",
+          "image_prompt_ja": "バストショット、黒髪制服17歳少年、光る瞳の静かな決意の表情、薄い自信に満ちた笑み、体から魔法の光エネルギーが溢れる、ドラマティックなバックライト、漫画スタイル、英雄覚醒シーン、白黒",
+          "speech_bubbles": [
+            {
+              "text": "……逃げない。",
+              "type": "normal",
+              "position": { "x": 30, "y": 5, "width": 40, "height": 22 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

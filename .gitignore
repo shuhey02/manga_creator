@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+.env
+
+# Node
+node_modules/
+dist/
+.cache/
+
+# Output (セッションデータ)
+backend/output/*/
+
+# Keep output dir
+!backend/output/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code のローカル設定・worktree
+.claude/
