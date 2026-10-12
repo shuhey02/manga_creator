@@ -6,7 +6,7 @@ from typing import Protocol
 
 
 class ImageGenerationError(RuntimeError):
-    # 画面の出し分けに使う: quota（利用枠切れ）/ auth（未ログイン）/ other
+    # 画面の出し分けに使う: quota（利用枠切れ）/ auth（未ログイン）/ safety（安全フィルタ）/ other
     kind = "other"
 
 
@@ -16,6 +16,10 @@ class ImageQuotaError(ImageGenerationError):
 
 class ImageAuthError(ImageGenerationError):
     kind = "auth"
+
+
+class ImageSafetyError(ImageGenerationError):
+    kind = "safety"
 
 
 class ImageGenerator(Protocol):

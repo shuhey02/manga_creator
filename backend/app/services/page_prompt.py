@@ -96,3 +96,43 @@ def build_character_sheet_prompt(storyboard: Storyboard) -> str:
         lines.append(f"- {c.name}: {c.prompt_keywords}. {c.description}")
     lines += ["", _NO_TEXT, _MODESTY]
     return "\n".join(lines)
+
+
+def panel_orientation(width: float, height: float) -> str:
+    """描き直すコマの形に近い、gpt-image-2 の出力の向き"""
+    ratio = width / height
+    if ratio > 1.25:
+        return "landscape (3:2)"
+    if ratio < 0.8:
+        return "portrait (2:3)"
+    return "square (1:1)"
+
+
+def build_panel_redraw_prompt(
+    storyboard: Storyboard, panel: Panel, instruction: str, reference_names: list[str],
+    orientation: str,
+) -> str:
+    """
+    1コマだけを新しい1枚の絵として描かせる（入力画像1は今のそのコマの切り抜き）。
+    できた絵は元のページのコマ枠に貼るので、枠線やほかのコマは描かせない。
+    ページ全体を「同じものを描き直して」と頼むと、既存画像の再現として安全フィルタに止められた。
+    """
+    characters = _character_lookup(storyboard)
+    lines = [
+        "Draw one new black-and-white Japanese manga panel illustration, "
+        f"{orientation}, filling the whole canvas with no border, no frame and no white margin.",
+        "Input image 1 is the current version of this panel. Match its art style, line weight, "
+        "screentone shading, camera framing and lighting so the new panel fits the same page, "
+        "and apply the requested change.",
+    ]
+    if reference_names:
+        lines.append(
+            "Input image 2 is the character reference sheet showing, from left to right: "
+            + ", ".join(reference_names)
+            + ". Keep each character's face, hairstyle, body type and outfit identical to it."
+        )
+    lines += ["", "What the panel should show:", _describe_panel(panel, characters)]
+    if instruction.strip():
+        lines += ["", f"Requested change (highest priority): {instruction.strip()}"]
+    lines += ["", _NO_TEXT, _MODESTY]
+    return "\n".join(lines)

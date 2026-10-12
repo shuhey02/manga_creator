@@ -10,8 +10,19 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
-from ..models.schemas import GenerateCharactersRequest, GeneratePageRequest, GenerationJob
-from ..services.generation_service import generate_character_sheet, generate_page
+from ..models.schemas import (
+    GenerateCharactersRequest,
+    GeneratePageRequest,
+    GenerationJob,
+    RedrawPanelRequest,
+    SelectPageVersionRequest,
+)
+from ..services.generation_service import (
+    generate_character_sheet,
+    generate_page,
+    redraw_panel,
+    use_page_version,
+)
 from ..services.image_gen import ImageGenerationError
 from ..services.session_store import (
     SessionNotFoundError,
@@ -77,6 +88,30 @@ async def start_page(request: GeneratePageRequest):
             request.session_id, request.page_number, request.use_character_refs
         ),
     )
+
+
+@router.post("/panel", response_model=GenerationJob)
+async def start_panel_redraw(request: RedrawPanelRequest):
+    """今の絵を元に1コマだけ描き直し、新しい版にする"""
+    _require_session(request.session_id)
+    job = GenerationJob(session_id=request.session_id, kind="panel", page_number=request.page_number)
+    return _start(
+        job,
+        lambda: redraw_panel(
+            request.session_id, request.page_number, request.panel_number, request.instruction
+        ),
+    )
+
+
+@router.post("/page/version")
+async def select_page_version(request: SelectPageVersionRequest):
+    """ページの絵を指定の版に切り替える（すぐ終わるのでジョブにしない）"""
+    _require_session(request.session_id)
+    try:
+        relative = use_page_version(request.session_id, request.page_number, request.version)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"generated_image": relative}
 
 
 @router.get("/job/{job_id}", response_model=GenerationJob)

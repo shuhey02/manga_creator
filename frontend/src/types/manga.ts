@@ -50,6 +50,8 @@ export interface MangaPage {
   panels: Panel[];
   // AI 生成したページ画像（セッションディレクトリからの相対パス）
   generated_image?: string | null;
+  // これまでに描いた版（古い順）。generated_image がそのどれかを指す
+  generated_versions?: string[];
 }
 
 export interface Character {
@@ -98,7 +100,7 @@ export type GenerationStatus = "queued" | "running" | "done" | "error";
 export interface GenerationJob {
   job_id: string;
   session_id: string;
-  kind: "page" | "characters";
+  kind: "page" | "panel" | "characters";
   page_number: number | null;
   status: GenerationStatus;
   image_urls: string[];

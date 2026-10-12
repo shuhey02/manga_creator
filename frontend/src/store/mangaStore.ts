@@ -51,6 +51,8 @@ interface MangaStore {
   generateCharacterSheet: () => Promise<void>;
   generatePageImage: (pageNum: number) => Promise<void>;
   generateAllPageImages: () => Promise<void>;
+  redrawPanel: (pageNum: number, panelNum: number, instruction: string) => Promise<void>;
+  selectPageVersion: (pageNum: number, version: number) => Promise<void>;
   uploadImage: (pageNum: number, panelNum: number, file: File) => Promise<void>;
   assembleAllPages: () => Promise<void>;
   exportManga: (format: "pdf" | "zip") => Promise<void>;
@@ -144,6 +146,27 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
     await runGenerationJob(set, get, `page_${pageNum}`, () =>
       api.startPageGeneration(sessionId, pageNum)
     );
+  },
+
+  redrawPanel: async (pageNum, panelNum, instruction) => {
+    const { sessionId } = get();
+    if (!sessionId) return;
+    // ページと同じキーで持ち、ページのカードに進み具合と失敗を出す
+    await runGenerationJob(set, get, `page_${pageNum}`, () =>
+      api.startPanelRedraw(sessionId, pageNum, panelNum, instruction)
+    );
+  },
+
+  selectPageVersion: async (pageNum, version) => {
+    const { sessionId } = get();
+    if (!sessionId) return;
+    try {
+      await api.selectPageVersion(sessionId, pageNum, version);
+      const res = await api.getSession(sessionId);
+      set({ storyboard: res.storyboard, imageVersion: Date.now() });
+    } catch (e: unknown) {
+      set({ error: api.errorMessage(e, "版の切り替えに失敗しました") });
+    }
   },
 
   generateAllPageImages: async () => {

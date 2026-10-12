@@ -30,6 +30,14 @@ def test_http_429_is_reported_as_quota():
     assert isinstance(classify_failure('{"type":"error","status":429,"error":{}}'), ImageQuotaError)
 
 
+def test_safety_block_is_reported_with_advice():
+    from app.services.image_gen import ImageSafetyError
+    # 1コマ描き直しの最初の方式で、実際に Codex から返ってきた文面
+    error = classify_failure("The image generation was blocked by the tool’s safety system. No image was generated.")
+    assert isinstance(error, ImageSafetyError)
+    assert "変えて再試行" in str(error)
+
+
 def test_expired_login_is_reported_as_auth():
     assert isinstance(classify_failure('{"status":401,"error":{"message":"Unauthorized"}}'), ImageAuthError)
 

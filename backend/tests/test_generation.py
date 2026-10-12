@@ -60,7 +60,7 @@ def test_generated_page_is_recorded_and_assembled(storyboard, output_dir):
 
     saved = load_storyboard(session_id)
     page = saved.pages[0]
-    assert page.generated_image == "generated/page_001.png"
+    assert page.generated_image == "generated/page_001_v1.png"
     assert all(p.rendered_layout is not None for p in page.panels)
     assert saved.characters[0].reference_image == "characters/characters.png"
     # 2回目（ページ）の呼び出しにはガイドとキャラ参照シートが渡る

@@ -73,8 +73,10 @@ class MangaPage(BaseModel):
     page_number: int
     page_notes: str = ""
     panels: list[Panel] = []
-    # AI 生成したページ画像（セッションディレクトリからの相対パス）
+    # AI 生成したページ画像（セッションディレクトリからの相対パス）。generated_versions のどれか
     generated_image: Optional[str] = None
+    # これまでに描いた版（古い順）。描き直しても前の版は消さず、generated_image で使う版を選ぶ
+    generated_versions: list[str] = []
 
 
 class Character(BaseModel):
@@ -124,6 +126,19 @@ class GeneratePageRequest(BaseModel):
     use_character_refs: bool = True
 
 
+class SelectPageVersionRequest(BaseModel):
+    session_id: str
+    page_number: int
+    version: int = Field(..., ge=1, description="1 始まりの版番号")
+
+
+class RedrawPanelRequest(BaseModel):
+    session_id: str
+    page_number: int
+    panel_number: int
+    instruction: str = Field(default="", description="直したい内容（日本語可）")
+
+
 class GenerateCharactersRequest(BaseModel):
     session_id: str
 
@@ -131,7 +146,7 @@ class GenerateCharactersRequest(BaseModel):
 class GenerationJob(BaseModel):
     job_id: str = Field(default_factory=lambda: str(uuid4()))
     session_id: str
-    kind: str = Field(..., description="page|characters")
+    kind: str = Field(..., description="page|panel|characters")
     page_number: Optional[int] = None
     status: str = Field(default="queued", description="queued|running|done|error")
     image_urls: list[str] = []

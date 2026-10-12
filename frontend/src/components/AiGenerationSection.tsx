@@ -1,5 +1,78 @@
+import { useState } from "react";
 import { useMangaStore } from "../store/mangaStore";
-import type { GenerationJob } from "../types/manga";
+import type { GenerationJob, MangaPage } from "../types/manga";
+
+// 版の仕組みより前に描いたページは、その1枚を v1 とみなす（バックエンドと同じ扱い）
+const pageVersions = (page: MangaPage): string[] => {
+  const versions = page.generated_versions ?? [];
+  if (page.generated_image && !versions.includes(page.generated_image)) {
+    return [page.generated_image, ...versions];
+  }
+  return versions;
+};
+
+function PageEditTools({ page, disabled }: { page: MangaPage; disabled: boolean }) {
+  const { selectPageVersion, redrawPanel } = useMangaStore();
+  const [panelNumber, setPanelNumber] = useState(page.panels[0]?.panel_number ?? 1);
+  const [instruction, setInstruction] = useState("");
+  const versions = pageVersions(page);
+  const current = versions.indexOf(page.generated_image ?? "") + 1;
+
+  return (
+    <div className="space-y-2">
+      {versions.length > 1 && (
+        <div className="flex items-center gap-1 flex-wrap text-xs">
+          <span className="text-gray-500">版:</span>
+          {versions.map((_, i) => (
+            <button
+              key={i}
+              disabled={disabled || i + 1 === current}
+              onClick={() => selectPageVersion(page.page_number, i + 1)}
+              className={[
+                "px-2 py-0.5 rounded border",
+                i + 1 === current
+                  ? "bg-manga-500 text-white border-manga-500"
+                  : "border-gray-300 text-gray-600 hover:border-manga-400",
+              ].join(" ")}
+            >
+              v{i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+      <details className="text-xs">
+        <summary className="cursor-pointer text-gray-600">1コマだけ描き直す</summary>
+        <div className="mt-2 space-y-2">
+          <select
+            className="w-full border border-gray-300 rounded px-2 py-1"
+            value={panelNumber}
+            onChange={(e) => setPanelNumber(Number(e.target.value))}
+          >
+            {page.panels.map((p) => (
+              <option key={p.panel_number} value={p.panel_number}>
+                コマ {p.panel_number}：{p.composition.slice(0, 20)}
+              </option>
+            ))}
+          </select>
+          <textarea
+            className="w-full border border-gray-300 rounded px-2 py-1"
+            rows={2}
+            placeholder="直したい内容（例: もっと驚いた表情に、背景を夕方に）"
+            value={instruction}
+            onChange={(e) => setInstruction(e.target.value)}
+          />
+          <button
+            className="btn-secondary w-full"
+            disabled={disabled}
+            onClick={() => redrawPanel(page.page_number, panelNumber, instruction)}
+          >
+            このコマを描き直す（ほかのコマはそのまま）
+          </button>
+        </div>
+      </details>
+    </div>
+  );
+}
 
 function Spinner() {
   return (
@@ -133,8 +206,9 @@ export function AiGenerationSection() {
                 disabled={anyActive}
                 onClick={() => generatePageImage(page.page_number)}
               >
-                {page.generated_image ? "描き直す" : "このページを生成"}
+                {page.generated_image ? "ページ全体を描き直す" : "このページを生成"}
               </button>
+              {page.generated_image && <PageEditTools page={page} disabled={anyActive} />}
             </div>
           );
         })}

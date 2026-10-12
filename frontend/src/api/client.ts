@@ -67,6 +67,33 @@ export const startPageGeneration = async (
   return res.data;
 };
 
+export const startPanelRedraw = async (
+  sessionId: string,
+  pageNumber: number,
+  panelNumber: number,
+  instruction: string
+): Promise<GenerationJob> => {
+  const res = await api.post<GenerationJob>("/api/generation/panel", {
+    session_id: sessionId,
+    page_number: pageNumber,
+    panel_number: panelNumber,
+    instruction,
+  });
+  return res.data;
+};
+
+export const selectPageVersion = async (
+  sessionId: string,
+  pageNumber: number,
+  version: number
+): Promise<void> => {
+  await api.post("/api/generation/page/version", {
+    session_id: sessionId,
+    page_number: pageNumber,
+    version,
+  });
+};
+
 export const getGenerationJob = async (jobId: string): Promise<GenerationJob> => {
   const res = await api.get<GenerationJob>(`/api/generation/job/${jobId}`);
   return res.data;

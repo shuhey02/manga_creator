@@ -1,5 +1,5 @@
 from ...config import settings
-from .base import ImageAuthError, ImageGenerationError, ImageGenerator, ImageQuotaError
+from .base import ImageAuthError, ImageGenerationError, ImageGenerator, ImageQuotaError, ImageSafetyError
 from .codex_cli import CodexImageGenerator
 
 
@@ -11,5 +11,6 @@ def create_image_generator() -> ImageGenerator:
 
 __all__ = [
     "ImageAuthError", "ImageGenerationError", "ImageGenerator", "ImageQuotaError",
+    "ImageSafetyError",
     "create_image_generator",
 ]

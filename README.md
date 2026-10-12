@@ -60,7 +60,20 @@
 | `create_session` | ネーム JSON からセッションを作る（Claude Code 自身がネームを書けるので API キー不要） |
 | `create_storyboard_with_claude_api` | Anthropic API でネームを自動生成 |
 | `generate_character_sheet` / `generate_page_image` | ChatGPT で参照シート・ページを描く（返る画像パスを Read で確認できる） |
-| `assemble_pages` / `export_manga` | 吹き出しを重ねて完成ページ化、PDF / CBZ に書き出し |
+| `assemble_pages` / `assemble_page_image` / `export_manga` | 吹き出しを重ねて完成ページ化（全ページ／1ページ）、PDF / CBZ に書き出し |
+| `update_panel` / `update_speech_bubble` / `add_speech_bubble` / `remove_speech_bubble` / `update_character` | 既存のネームを部分的に直す。文字まわりは合成し直すだけで反映（数秒・無料）、絵に関わる項目は `needs_redraw` で知らせる |
+| `redraw_panel` | 今のコマを切り出して参照に渡し、1コマだけ描き直して元の枠へ貼る（ほかのコマは1画素も変えない） |
+| `list_page_versions` / `use_page_version` | 描き直した絵は `page_001_v2.png` のように版として残り、いつでも前の版に戻せる |
+
+### 微修正の進め方
+
+1. ネーム（文字・コマ割り）を先に固める。ここまでは何度直しても無料
+2. キャラ参照シートを1枚作って確認する
+3. ページの絵を生成する
+4. セリフ・吹き出し・効果音の修正は、絵を描き直さず `assemble_page_image` で合成し直す
+5. 1コマだけ絵がおかしいときは `redraw_panel`（例:「目を見開いて驚いた表情に」）。気に入らなければ `use_page_version` で戻す
+
+Web 画面でも、画像管理のページカードから版の切り替えと「1コマだけ描き直す」ができる。
 
 例:「〇〇という話で2ページの漫画を作って」と頼むと、ネーム作成→生成→合成→PDF まで進む。
 Codex から使う場合は `~/.codex/config.toml` に同じコマンドを `[mcp_servers.manga-app]` として登録する。

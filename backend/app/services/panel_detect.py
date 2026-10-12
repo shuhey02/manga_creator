@@ -100,12 +100,13 @@ def _to_percent(box: Box, w: int, h: int) -> PanelLayout:
     )
 
 
-def measure_rendered_layouts(page: MangaPage, image_path: Path) -> list[PanelLayout]:
+def measure_rendered_layouts(page: MangaPage, image: Path | Image.Image) -> list[PanelLayout]:
     """
     各コマが生成画像のどこに描かれたかを、画像全体に対するパーセントで返す。
     検出できなかったコマはガイドで指定した位置を使う。
     """
-    image = Image.open(image_path)
+    if not isinstance(image, Image.Image):
+        image = Image.open(image)
     w, h = image.size
     detected = detect_panel_boxes(image)
 

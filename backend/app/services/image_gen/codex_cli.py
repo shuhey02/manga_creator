@@ -13,7 +13,7 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .base import ImageAuthError, ImageGenerationError, ImageQuotaError
+from .base import ImageAuthError, ImageGenerationError, ImageQuotaError, ImageSafetyError
 
 # Codex エージェントに「生成だけ」させる。保存・再生成をさせると時間と枠を浪費する
 _INSTRUCTION = (
@@ -73,6 +73,9 @@ _AUTH_PATTERN = re.compile(
     r"authentication|token (?:has )?expired",
     re.IGNORECASE,
 )
+_SAFETY_PATTERN = re.compile(
+    r"safety system|content policy|moderation|blocked by|violat\w* (?:our|the) polic", re.IGNORECASE
+)
 _RETRY_PATTERN = re.compile(r"(?:try again|resets?)\s+(?:at|in)\s+([^.\"\n]+)", re.IGNORECASE)
 
 
@@ -85,6 +88,11 @@ def classify_failure(text: str) -> ImageGenerationError:
         return ImageQuotaError(
             f"ChatGPT の画像生成の利用枠の上限に達しました{when}。時間をおいて再試行するか、"
             f"Codex の Usage 画面で残量を確認してください。詳細: {detail}"
+        )
+    if _SAFETY_PATTERN.search(text):
+        return ImageSafetyError(
+            "ChatGPT の安全フィルタで画像生成が止められました。指示や構図（露出・暴力・実在の人物など）"
+            f"を変えて再試行してください。詳細: {detail}"
         )
     if _AUTH_PATTERN.search(text):
         return ImageAuthError(

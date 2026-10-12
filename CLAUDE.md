@@ -106,8 +106,14 @@ manga-app/
   効果音も縦書き（`Panel.sound_effect_orientation`、既定 vertical）。白抜き＋黒縁で右端に1列、吹き出しと重なるなら左端
   英数字は2文字まで・「!?」を縦中横、3文字以上は全角で縦に並べる
 
+### 微修正（2026-10-12）
+- ネームの部分修正は `services/storyboard_edit.py`（MCP の update_* ツールが呼ぶ）。絵に関わる項目（`ART_FIELDS`）を変えたら `needs_redraw` を返す
+- ページの絵は描くたびに `generated/page_NNN_vK.png` として残し、`MangaPage.generated_versions` に古い順で持つ。`generated_image` が使う版。版の仕組みより前の `page_NNN.png` は v1 扱い
+- 1コマ描き直し（`generation_service.redraw_panel`）は、そのコマを切り出して参照に渡し「新しい1コマ」を描かせて枠内へ貼る。
+  ページ全体を「同じものを描き直して」と頼む方式は ChatGPT の安全フィルタに止められた（既存画像の再現とみなされたとみられる）
+
 ### エラー表示（2026-10-12）
-- 画像生成の失敗は `image_gen/codex_cli.classify_failure` で quota（利用枠切れ）/ auth（未ログイン）/ other に分け、`GenerationJob.error_kind` で画面に出し分ける。利用枠切れのときは「全ページを生成」を途中で止める
+- 画像生成の失敗は `image_gen/codex_cli.classify_failure` で quota（利用枠切れ）/ auth（未ログイン）/ safety（安全フィルタ）/ other に分け、`GenerationJob.error_kind` で画面に出し分ける。利用枠切れのときは「全ページを生成」を途中で止める
 - Claude API の失敗は `llm_service.StoryboardServiceError` で日本語にし、HTTP ステータスも合わせる
 - フロントは `api.errorMessage()` でサーバーの `detail` を表示する（axios の汎用文を出さない）
 - セッションID は UUID の標準形だけを受け付ける（`session_store.session_dir`、API 側は `api/deps.py`）
