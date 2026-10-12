@@ -49,7 +49,7 @@ manga-app/
 │   │       └── export_api.py             # エクスポート API
 │   ├── output/                           # セッション別出力（gitignore）
 │   ├── requirements.txt
-│   └── .env / .env.example               # ANTHROPIC_API_KEY 等
+│   └── .env                              # ANTHROPIC_API_KEY 等（git 管理外）
 └── frontend/
     └── src/
         ├── App.tsx                       # 5ステップウィザード

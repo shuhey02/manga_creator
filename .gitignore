@@ -24,3 +24,6 @@ Thumbs.db
 
 # Claude Code のローカル設定・worktree
 .claude/
+
+# 環境変数の雛形もキーを含みうるので公開しない
+backend/.env.example

@@ -91,8 +91,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # 環境変数の設定
-cp .env.example .env
-# .env を編集して ANTHROPIC_API_KEY を設定
+# backend/.env を作り、下の例を参考に ANTHROPIC_API_KEY 等を設定
 ```
 
 `.env` ファイル:
@@ -185,7 +184,7 @@ manga-app/
 │   │       └── export_api.py   # エクスポートAPI
 │   ├── output/                 # セッション別出力ディレクトリ（gitignore）
 │   ├── requirements.txt
-│   └── .env.example
+│   └── .env                ← 自分で作る（git 管理外）
 │
 ├── frontend/                   # React + TypeScript + Vite
 │   └── src/
