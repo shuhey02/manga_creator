@@ -35,18 +35,23 @@ export interface Panel {
   image_prompt_en: string;
   image_prompt_ja: string;
   speech_bubbles: SpeechBubble[];
+  // AI 生成ページ上で実際に描かれたコマ枠（生成画像全体に対する %）
+  rendered_layout?: PanelLayout | null;
 }
 
 export interface MangaPage {
   page_number: number;
   page_notes: string;
   panels: Panel[];
+  // AI 生成したページ画像（セッションディレクトリからの相対パス）
+  generated_image?: string | null;
 }
 
 export interface Character {
   name: string;
   description: string;
   prompt_keywords: string;
+  reference_image?: string | null;
 }
 
 export interface Storyboard {
@@ -83,6 +88,18 @@ export interface AssembleAllResponse {
   pages: AssemblePageResponse[];
 }
 
+export type GenerationStatus = "queued" | "running" | "done" | "error";
+
+export interface GenerationJob {
+  job_id: string;
+  session_id: string;
+  kind: "page" | "characters";
+  page_number: number | null;
+  status: GenerationStatus;
+  image_urls: string[];
+  error: string | null;
+}
+
 export interface ExportResponse {
   session_id: string;
   download_url: string;
@@ -103,3 +120,5 @@ export interface StoryInput {
 export type PanelImageMap = Record<string, string>;
 // page key: page_number (number)
 export type AssembledPageMap = Record<number, string>;
+// key: "characters" または `page_${pageNum}`
+export type GenerationJobMap = Record<string, GenerationJob>;

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import * as api from "../api/client";
 import type {
   AssembledPageMap,
+  GenerationJob,
+  GenerationJobMap,
   PanelImageMap,
   Storyboard,
   StoryInput,
@@ -22,6 +24,11 @@ interface MangaStore {
   panelImages: PanelImageMap;
   setPanelImage: (pageNum: number, panelNum: number, url: string) => void;
 
+  // ─── AI 画像生成 ────────────────────────────────────────────
+  generationJobs: GenerationJobMap;
+  // 再生成で同じ URL の画像が変わるので、表示時のキャッシュ回避に使う
+  imageVersion: number;
+
   // ─── 合成済みページ ──────────────────────────────────────────
   assembledPages: AssembledPageMap;
   setAssembledPage: (pageNum: number, url: string) => void;
@@ -40,6 +47,10 @@ interface MangaStore {
 
   // ─── アクション ──────────────────────────────────────────────
   generateStoryboard: () => Promise<void>;
+  importStoryboard: (storyboard: Storyboard) => Promise<void>;
+  generateCharacterSheet: () => Promise<void>;
+  generatePageImage: (pageNum: number) => Promise<void>;
+  generateAllPageImages: () => Promise<void>;
   uploadImage: (pageNum: number, panelNum: number, file: File) => Promise<void>;
   assembleAllPages: () => Promise<void>;
   exportManga: (format: "pdf" | "zip") => Promise<void>;
@@ -71,6 +82,9 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
       },
     })),
 
+  generationJobs: {},
+  imageVersion: Date.now(),
+
   assembledPages: {},
   setAssembledPage: (pageNum, url) =>
     set((s) => ({ assembledPages: { ...s.assembledPages, [pageNum]: url } })),
@@ -101,6 +115,43 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
       set({ error: msg });
     } finally {
       set({ isLoading: false, loadingMessage: "" });
+    }
+  },
+
+  // ─── ネーム JSON の読み込み（Claude Code 等で作ったもの） ─────────────────
+  importStoryboard: async (storyboard) => {
+    set({ isLoading: true, loadingMessage: "ネームを読み込み中…", error: null });
+    try {
+      const res = await api.importStoryboard(storyboard);
+      set({ sessionId: res.session_id, storyboard: res.storyboard, currentStep: 1 });
+    } catch (e: unknown) {
+      set({ error: e instanceof Error ? e.message : "ネームの読み込みに失敗しました" });
+    } finally {
+      set({ isLoading: false, loadingMessage: "" });
+    }
+  },
+
+  // ─── AI 画像生成 ──────────────────────────────────────────────────────────
+  generateCharacterSheet: async () => {
+    const { sessionId } = get();
+    if (!sessionId) return;
+    await runGenerationJob(set, get, "characters", () => api.startCharacterSheet(sessionId));
+  },
+
+  generatePageImage: async (pageNum) => {
+    const { sessionId } = get();
+    if (!sessionId) return;
+    await runGenerationJob(set, get, `page_${pageNum}`, () =>
+      api.startPageGeneration(sessionId, pageNum)
+    );
+  },
+
+  generateAllPageImages: async () => {
+    const { storyboard } = get();
+    if (!storyboard) return;
+    // サーバー側も1枚ずつしか描かないので、順に投げて進捗を見やすくする
+    for (const page of storyboard.pages) {
+      await get().generatePageImage(page.page_number);
     }
   },
 
@@ -157,3 +208,38 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
     }
   },
 }));
+
+const POLL_INTERVAL_MS = 3000;
+
+type SetState = (partial: Partial<MangaStore> | ((s: MangaStore) => Partial<MangaStore>)) => void;
+
+async function runGenerationJob(
+  set: SetState,
+  get: () => MangaStore,
+  key: string,
+  start: () => Promise<GenerationJob>
+): Promise<void> {
+  const putJob = (job: GenerationJob) =>
+    set((s) => ({ generationJobs: { ...s.generationJobs, [key]: job } }));
+  try {
+    let job = await start();
+    putJob(job);
+    while (job.status === "queued" || job.status === "running") {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      job = await api.getGenerationJob(job.job_id);
+      putJob(job);
+    }
+    if (job.status === "error") {
+      set({ error: job.error ?? "画像生成に失敗しました" });
+      return;
+    }
+    // 生成結果（generated_image・検出したコマ枠）はサーバー側の storyboard に入る
+    const sessionId = get().sessionId;
+    if (sessionId) {
+      const res = await api.getSession(sessionId);
+      set({ storyboard: res.storyboard, imageVersion: Date.now() });
+    }
+  } catch (e: unknown) {
+    set({ error: e instanceof Error ? e.message : "画像生成に失敗しました" });
+  }
+}

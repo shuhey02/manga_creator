@@ -18,8 +18,10 @@ const SAMPLE_STORY = `高校生の田中ケンジは、朝の教室で不思議�
 その時、遠くから巨大なドラゴンの鳴き声が響いた。`;
 
 export function StoryInput() {
-  const { storyInput, setStoryInput, generateStoryboard, isLoading, loadingMessage, error } =
-    useMangaStore();
+  const {
+    storyInput, setStoryInput, generateStoryboard, importStoryboard,
+    isLoading, loadingMessage, error, setError,
+  } = useMangaStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +145,26 @@ export function StoryInput() {
             "🤖 ネームを生成する"
           )}
         </button>
+
+        <label className="block text-center text-sm text-manga-600 hover:text-manga-700 cursor-pointer">
+          または、ネーム JSON（Claude Code で作ったもの等）を読み込む
+          <input
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            disabled={isLoading}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              try {
+                importStoryboard(JSON.parse(await file.text()));
+              } catch {
+                setError("JSON として読み込めませんでした");
+              }
+            }}
+          />
+        </label>
       </form>
     </div>
   );

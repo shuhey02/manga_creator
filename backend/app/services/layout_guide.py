@@ -22,14 +22,18 @@ Box = tuple[int, int, int, int]
 
 
 def panel_box(layout: PanelLayout, width: int = GUIDE_WIDTH, height: int = GUIDE_HEIGHT) -> Box:
-    """ページ内パーセント座標のコマを、ガイド画像上のピクセル枠に変換する"""
-    inner_w = width - 2 * GUIDE_MARGIN
-    inner_h = height - 2 * GUIDE_MARGIN
-    half = GUIDE_GUTTER // 2
-    x0 = GUIDE_MARGIN + round(inner_w * layout.x / 100) + half
-    y0 = GUIDE_MARGIN + round(inner_h * layout.y / 100) + half
-    x1 = GUIDE_MARGIN + round(inner_w * (layout.x + layout.width) / 100) - half
-    y1 = GUIDE_MARGIN + round(inner_h * (layout.y + layout.height) / 100) - half
+    """
+    ページ内パーセント座標のコマを、ピクセル枠に変換する。
+    生成画像がガイドと違う解像度で返っても比べられるよう、余白も比率で拡縮する。
+    """
+    sx, sy = width / GUIDE_WIDTH, height / GUIDE_HEIGHT
+    mx, my = GUIDE_MARGIN * sx, GUIDE_MARGIN * sy
+    hx, hy = GUIDE_GUTTER * sx / 2, GUIDE_GUTTER * sy / 2
+    inner_w, inner_h = width - 2 * mx, height - 2 * my
+    x0 = round(mx + inner_w * layout.x / 100 + hx)
+    y0 = round(my + inner_h * layout.y / 100 + hy)
+    x1 = round(mx + inner_w * (layout.x + layout.width) / 100 - hx)
+    y1 = round(my + inner_h * (layout.y + layout.height) / 100 - hy)
     return x0, y0, x1, y1
 
 

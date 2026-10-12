@@ -96,8 +96,11 @@ manga-app/
 - エクスポート履歴の再 DL
 
 ### Phase 3: 品質向上（2〜4週間）
-- **3-A** キャラクター一貫性: リファレンス画像、`character_locked` フラグ、seed 管理
-- **3-B** 画像生成 API 直結: `backend/app/services/image_gen/{base,dalle,sd_local}.py` プラガブル設計（着手は Phase 1 完了後に判断）
+- **3-A** キャラクター一貫性: ✅ キャラ参照シート（全員を1枚に描き、ページ生成時に参照画像として渡す）。`character_locked` / seed は未着手
+- **3-B** 画像生成直結: ✅ `services/image_gen/codex_cli.py`（Codex CLI の `$imagegen` = gpt-image-2、ChatGPT サブスク枠）。
+  方式は「ページ一括＋コマ割りガイド」。生成後に `panel_detect.py` で実際の枠を測り直し、吹き出しはその枠基準で重ねる。
+  他プロバイダは `image_gen/base.py` の `ImageGenerator` を実装して `create_image_generator` に足す
+- **3-D** MCP サーバー: ✅ `backend/mcp_server.py`（`.mcp.json` で登録）。Web API と同じ `services/generation_service.py` を呼ぶ
 - **3-C** 縦書き吹き出し: Pillow で縦描画関数、`bubble.orientation` フィールド追加
 
 ### Phase 4: 本番化基盤（必要時）
@@ -122,6 +125,9 @@ Docker、Postgres + SQLAlchemy + Alembic、pytest / Vitest / GitHub Actions、�
 | GET  | `/api/assembly/status/{id}` | アップロード状況 |
 | POST | `/api/export/generate` | PDF / CBZ 生成 |
 | GET  | `/api/export/download/{id}/{file}` | DL |
+| POST | `/api/storyboard/import` | ネーム JSON からセッション作成 |
+| POST | `/api/generation/characters` / `/api/generation/page` | 生成ジョブ開始（メモリ上のジョブ） |
+| GET  | `/api/generation/job/{id}` | ジョブ状態 |
 
 ### Phase 1〜2 で追加予定
 - `POST /api/storyboard/session/{id}/regenerate-panel`
@@ -135,6 +141,8 @@ Docker、Postgres + SQLAlchemy + Alembic、pytest / Vitest / GitHub Actions、�
 - **ページ画像**: 1240 × 1754 px（A4 @ 150dpi）, PNG, RGB
 - **layout / position**: 0〜100 のパーセンテージ
 - **アップロード命名**: `p{page}_panel{panel}.{jpg|jpeg|png|webp}`
+- **AI 生成**: ガイド・生成画像は 1024 × 1536。`Panel.rendered_layout` は生成画像全体に対する %（`layout` はページ内容域に対する %）
+- **テスト**: `backend/venv/Scripts/python -m pytest backend/tests`
 - **CBZ メタデータ**: `Manga: YesAndRightToLeft`（右綴じ）
 
 ---

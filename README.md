@@ -8,6 +8,9 @@
 |------|------|
 | ネーム自動生成 | Claude AI がストーリーからコマ割り・構図・セリフ・効果音を生成 |
 | 画像プロンプト出力 | 各コマのStable Diffusion/DALL-E向けプロンプト（英日両語）を生成 |
+| **AI ページ生成** | ChatGPT（gpt-image-2）がコマ割りガイドに沿って1ページを丸ごと描く（Codex CLI 経由・ChatGPT サブスク枠） |
+| キャラ参照シート | 登場キャラ全員の設定画を先に作り、ページ間で顔・服装をそろえる |
+| MCP サーバー | Claude Code / Codex からネーム登録〜生成〜書き出しをツールとして呼べる |
 | 手動画像アップロード | 外部生成した画像をコマ単位でアップロード |
 | ページ自動合成 | コマ配置・吹き出し・効果音をPillowで自動合成 |
 | PDF/CBZエクスポート | Kindle用CBZ（コミックアーカイブ）またはPDFとして出力 |
@@ -25,6 +28,41 @@
 - Python 3.11+
 - Node.js 18+
 - [Anthropic APIキー](https://console.anthropic.com/)
+
+- AI 画像生成を使う場合: [Codex CLI](https://github.com/openai/codex) v0.123 以上を ChatGPT Plus/Pro アカウントで `codex login` 済みであること（API キー不要）
+- ANTHROPIC_API_KEY は Web 画面でネームを自動生成するときだけ必要。Claude Code で作ったネーム JSON を読み込めば無くても使える
+
+---
+
+## AI 画像生成のしくみ
+
+```
+ネーム(JSON) ─▶ layout_guide: コマ枠＋吹き出し予定域(灰色)の下絵 1024x1536
+             ─▶ page_prompt : 各コマの構図・人物・背景を1ページ分のプロンプトに（文字は描かせない）
+             ─▶ codex exec '$imagegen' --image 下絵 --image キャラ参照シート  （gpt-image-2）
+             ─▶ panel_detect: 実際に描かれたコマ枠を白い溝から測り直す（数%ずれるため）
+             ─▶ image_assembler: 測った枠を基準に吹き出し・効果音を重ねて A4 に
+```
+
+- 1枚あたり約3〜4分。ChatGPT の利用枠を使うので、同時実行は1つに制限している
+- セリフを画像に描かせないのは、小さい日本語が崩れやすく修正も効かないため
+- 追加の環境変数（`backend/.env`）: `IMAGE_PROVIDER=codex`、`CODEX_BIN=codex`、`IMAGE_TIMEOUT_SEC=600`、`CORS_ORIGINS`
+
+### Claude Code から使う（MCP）
+
+リポジトリ直下の `.mcp.json` に `manga-app` サーバーを登録してある。manga-app で Claude Code を開き、
+サーバーの有効化を承認すると次のツールが使える（`backend/venv` を作成済みであること）。
+
+| ツール | 内容 |
+|---|---|
+| `storyboard_guidelines` | ネーム JSON のルールとスキーマ |
+| `create_session` | ネーム JSON からセッションを作る（Claude Code 自身がネームを書けるので API キー不要） |
+| `create_storyboard_with_claude_api` | Anthropic API でネームを自動生成 |
+| `generate_character_sheet` / `generate_page_image` | ChatGPT で参照シート・ページを描く（返る画像パスを Read で確認できる） |
+| `assemble_pages` / `export_manga` | 吹き出しを重ねて完成ページ化、PDF / CBZ に書き出し |
+
+例:「〇〇という話で2ページの漫画を作って」と頼むと、ネーム作成→生成→合成→PDF まで進む。
+Codex から使う場合は `~/.codex/config.toml` に同じコマンドを `[mcp_servers.manga-app]` として登録する。
 
 ---
 
@@ -112,6 +150,7 @@ npm run dev
 - プロンプトをコピーして画像生成AIで画像を生成
 
 ### ステップ3: 画像管理
+- 「AI でページを描く」で、キャラ参照シート（任意）→ 各ページを生成。気に入らなければ「描き直す」
 - 各コマに画像をアップロード（JPG/PNG/WebP）
 - 未アップロードのコマはプレースホルダーで合成されます
 - 「ページを合成する」をクリック
@@ -187,6 +226,10 @@ manga-app/
 | POST | `/api/assembly/assemble-page` | 1ページ合成 |
 | POST | `/api/assembly/assemble-all` | 全ページ合成 |
 | GET | `/api/assembly/status/{id}` | アップロード状況確認 |
+| POST | `/api/storyboard/import` | ネーム JSON からセッション作成 |
+| POST | `/api/generation/characters` | キャラ参照シート生成ジョブ開始 |
+| POST | `/api/generation/page` | ページ画像生成ジョブ開始 |
+| GET | `/api/generation/job/{job_id}` | 生成ジョブの状態 |
 | POST | `/api/export/generate` | PDF/CBZ生成 |
 | GET | `/api/export/download/{id}/{file}` | ファイルダウンロード |
 
@@ -198,6 +241,9 @@ manga-app/
 ```
 backend/output/{session-uuid}/
 ├── storyboard.json     ← 生成されたネーム（JSON）
+├── characters/         ← キャラ参照シート（AI 生成）
+├── guides/             ← 画像生成 AI に渡したコマ割りガイド
+├── generated/          ← AI 生成ページ（文字なし）と使ったプロンプト
 ├── uploads/            ← アップロードされたパネル画像
 │   ├── p1_panel1.jpg
 │   ├── p1_panel2.jpg

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { AiGenerationSection } from "../components/AiGenerationSection";
 import { PanelLayoutPreview } from "../components/PanelLayoutPreview";
 import { useMangaStore } from "../store/mangaStore";
 import type { Panel } from "../types/manga";
@@ -168,8 +169,8 @@ export function ImageUpload() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">画像管理</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            各コマに画像をアップロードしてください。
-            プロンプトをコピーして外部の画像生成AIで生成した画像を使用できます。
+            AI でページを生成するか、コマごとに画像をアップロードしてください。
+            終わったら「ページを合成する」で吹き出しを重ねます。
           </p>
         </div>
         <div className="flex gap-2">
@@ -199,6 +200,19 @@ export function ImageUpload() {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+          ⛔ {error}
+        </div>
+      )}
+
+      <AiGenerationSection />
+
+      <details className="space-y-5">
+        <summary className="cursor-pointer text-sm font-semibold text-gray-700">
+          手動でコマ画像をアップロードする（AI 生成ページがあるページでは使われません）
+        </summary>
+
       {/* 進捗バー */}
       <div className="card py-3">
         <div className="flex justify-between text-sm mb-2">
@@ -217,12 +231,6 @@ export function ImageUpload() {
           ※ 未アップロードのコマはプレースホルダー（グレー背景）で合成されます
         </p>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-          ⛔ {error}
-        </div>
-      )}
 
       {/* ページ別パネルカード */}
       {storyboard.pages.map((page) => (
@@ -249,6 +257,7 @@ export function ImageUpload() {
           </div>
         </div>
       ))}
+      </details>
     </div>
   );
 }
