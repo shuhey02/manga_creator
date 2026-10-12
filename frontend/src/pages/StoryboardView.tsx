@@ -186,6 +186,12 @@ export function StoryboardView() {
                         {panel.speech_bubbles.map((b, bi) => (
                           <div key={bi} className="flex items-center gap-1 bg-white border border-gray-200 rounded px-2 py-0.5">
                             <BubbleTypeBadge type={b.type} />
+                            {b.orientation === "vertical" && (
+                              <span className="text-[10px] text-gray-500">縦</span>
+                            )}
+                            {b.orientation === "horizontal" && (
+                              <span className="text-[10px] text-gray-500">横</span>
+                            )}
                             <span className="text-xs">{b.text}</span>
                           </div>
                         ))}

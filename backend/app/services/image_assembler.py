@@ -9,6 +9,7 @@ from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
 
 from ..models.schemas import MangaPage, Panel, SpeechBubble
+from .vertical_text import draw_vertical, fit_vertical
 
 # ─── ページサイズ設定 (A4 @ 150dpi) ─────────────────────────────────────────
 PAGE_WIDTH = 1240
@@ -75,6 +76,12 @@ def _resize_cover(img: Image.Image, w: int, h: int) -> Image.Image:
     left = (nw - w) // 2
     top = (nh - h) // 2
     return img.crop((left, top, left + w, top + h))
+
+
+def _is_vertical(bubble: SpeechBubble, bw: int, bh: int) -> bool:
+    if bubble.orientation == "auto":
+        return bh > bw
+    return bubble.orientation == "vertical"
 
 
 def _draw_bubble(draw: ImageDraw.ImageDraw, bubble: SpeechBubble,
@@ -148,6 +155,10 @@ def _draw_bubble(draw: ImageDraw.ImageDraw, bubble: SpeechBubble,
     inset = 0.7 if btype in ("shout", "thought") else 0.85
     text_x = bx + bw // 2
     text_y = by + bh // 2
+    if _is_vertical(bubble, bw, bh):
+        layout = fit_vertical(text, int(bw * inset) - pad * 2, int(bh * inset) - pad * 2, _get_font)
+        draw_vertical(draw, layout, _get_font(layout.font_size), (text_x, text_y))
+        return
     for font_size in range(34, 13, -2):
         font = _get_font(font_size)
         lines = _wrap_text(text, font, int(bw * inset) - pad * 2)

@@ -46,7 +46,8 @@ STORYBOARD_SCHEMA = """
             {
               "text": "string（吹き出し内テキスト）",
               "type": "normal",
-              "position": {"x": 60, "y": 5, "width": 35, "height": 20}
+              "orientation": "vertical",
+              "position": {"x": 75, "y": 5, "width": 18, "height": 40}
             }
           ]
         }
@@ -73,7 +74,10 @@ SYSTEM_PROMPT = """あなたはプロの漫画ネーム作家・演出家です�
 ## 吹き出し配置のルール
 - position はコマ内でのパーセンテージ（コマの左上を 0,0 とする）
 - 吹き出しは絵の邪魔にならない位置（上部・隅・余白部分）に配置
-- 吹き出しサイズは内容に合わせる（width 20〜40, height 10〜25 が一般的）
+- セリフは日本の漫画と同じ**縦書き**にする（orientation: "vertical"）。吹き出しは縦長にする
+  （width 12〜22, height 25〜45 が目安。長いセリフは幅を広げて複数列にする）
+- 縦書きの読み順に合わせ、同じコマに複数あるときは先に読む吹き出しを右・上に置く
+- 英数字が中心の短い叫びなど、横書きが自然なものだけ orientation: "horizontal"（横長の吹き出し）にする
 
 ## 画像生成プロンプトのルール
 - image_prompt_en は必ず英語で書く（Stable Diffusion / DALL-E / Midjourney向け）

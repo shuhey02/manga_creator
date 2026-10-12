@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Literal, Optional
 from uuid import uuid4
 
 
@@ -40,6 +40,8 @@ class SpeechBubble(BaseModel):
     text: str
     type: str = Field(default="normal", description="normal|thought|shout|whisper")
     position: SpeechBubblePosition
+    # auto は吹き出しが縦長なら縦書き、横長なら横書き（向きを持たない既存のネームの見た目を変えないため）
+    orientation: Literal["auto", "vertical", "horizontal"] = "auto"
 
 
 class PanelLayout(BaseModel):

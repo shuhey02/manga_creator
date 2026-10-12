@@ -9,10 +9,14 @@ export interface SpeechBubblePosition {
 
 export type BubbleType = "normal" | "thought" | "shout" | "whisper";
 
+// auto は吹き出しが縦長なら縦書き、横長なら横書き
+export type BubbleOrientation = "auto" | "vertical" | "horizontal";
+
 export interface SpeechBubble {
   text: string;
   type: BubbleType;
   position: SpeechBubblePosition;
+  orientation?: BubbleOrientation;
 }
 
 export interface PanelLayout {

@@ -101,7 +101,8 @@ manga-app/
   方式は「ページ一括＋コマ割りガイド」。生成後に `panel_detect.py` で実際の枠を測り直し、吹き出しはその枠基準で重ねる。
   他プロバイダは `image_gen/base.py` の `ImageGenerator` を実装して `create_image_generator` に足す
 - **3-D** MCP サーバー: ✅ `backend/mcp_server.py`（`.mcp.json` で登録）。Web API と同じ `services/generation_service.py` を呼ぶ
-- **3-C** 縦書き吹き出し: Pillow で縦描画関数、`bubble.orientation` フィールド追加
+- **3-C** 縦書き吹き出し: ✅ `services/vertical_text.py`（libraqm が無いので1文字ずつ配置。句読点は右上、長音・括弧は回転、行頭禁則はぶら下げ）。
+  `SpeechBubble.orientation`（auto / vertical / horizontal、auto は縦長なら縦書き）。ネーム生成の指示も縦長・縦書きに変更
 
 ### Phase 4: 本番化基盤（必要時）
 Docker、Postgres + SQLAlchemy + Alembic、pytest / Vitest / GitHub Actions、認証、Railway / Fly.io デプロイ

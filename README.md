@@ -12,7 +12,7 @@
 | キャラ参照シート | 登場キャラ全員の設定画を先に作り、ページ間で顔・服装をそろえる |
 | MCP サーバー | Claude Code / Codex からネーム登録〜生成〜書き出しをツールとして呼べる |
 | 手動画像アップロード | 外部生成した画像をコマ単位でアップロード |
-| ページ自動合成 | コマ配置・吹き出し・効果音をPillowで自動合成 |
+| ページ自動合成 | コマ配置・吹き出し・効果音をPillowで自動合成。セリフは**縦書き**（吹き出しの `orientation`: auto / vertical / horizontal） |
 | PDF/CBZエクスポート | Kindle用CBZ（コミックアーカイブ）またはPDFとして出力 |
 
 ## スクリーンショット
@@ -277,5 +277,5 @@ backend/output/{session-uuid}/
 主な予定:
 - Stable Diffusion / DALL-E API直接連携
 - キャラ固定LoRA/IP-Adapter対応
-- 縦書きテキスト・装飾フォント
+- 装飾フォント
 - クラウドデプロイ・SaaS化
