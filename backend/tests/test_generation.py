@@ -37,6 +37,7 @@ class FakeGenerator:
 def test_page_prompt_forbids_text_and_names_reference_characters(storyboard):
     prompt = build_page_prompt(storyboard, storyboard.pages[0], [c.name for c in storyboard.characters])
     assert "no speech bubbles" in prompt
+    assert "never sexualized" in prompt
     assert "Input image 2" in prompt
     assert all(f"Panel {p.panel_number} (" in prompt for p in storyboard.pages[0].panels)
 

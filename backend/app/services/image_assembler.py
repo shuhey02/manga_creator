@@ -144,17 +144,19 @@ def _draw_bubble(draw: ImageDraw.ImageDraw, bubble: SpeechBubble,
         # しっぽ接合部の線を消す
         draw.line([(tail_cx - 8, tail_top), (tail_cx + 8, tail_top)], fill="white", width=3)
 
-    # テキスト描画
-    font_size = max(14, min(22, bh // 2))
-    font = _get_font(font_size)
+    # テキスト描画：吹き出しに収まる最大の文字サイズを選ぶ（楕円の吹き出しは角が使えないので内側を狭める）
+    inset = 0.7 if btype in ("shout", "thought") else 0.85
     text_x = bx + bw // 2
     text_y = by + bh // 2
-
-    lines = _wrap_text(text, font, bw - pad * 2)
-    try:
-        lh = font.getbbox("あ")[3] + 3
-    except AttributeError:
-        lh = font_size + 4
+    for font_size in range(34, 13, -2):
+        font = _get_font(font_size)
+        lines = _wrap_text(text, font, int(bw * inset) - pad * 2)
+        try:
+            lh = font.getbbox("あ")[3] + 3
+        except AttributeError:
+            lh = font_size + 4
+        if len(lines) * lh <= bh * inset - pad * 2:
+            break
     total_h = len(lines) * lh
     start_y = text_y - total_h // 2
 

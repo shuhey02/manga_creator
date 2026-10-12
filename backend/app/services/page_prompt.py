@@ -10,6 +10,11 @@ _NO_TEXT = (
     "Absolutely no text anywhere: no letters, no speech bubbles, no sound effects, "
     "no captions, no signatures, no panel numbers."
 )
+# ローアングル（アオリ）指定でスカートの中を描くことがあったため明示的に止める
+_MODESTY = (
+    "Keep every character modestly and fully clothed and never sexualized: no underwear "
+    "visible, no upskirt or cleavage-focused framing, even in low-angle shots."
+)
 
 
 def _position_label(layout: PanelLayout) -> str:
@@ -69,7 +74,7 @@ def build_page_prompt(storyboard: Storyboard, page: MangaPage, reference_names: 
             + ", ".join(reference_names)
             + ". Keep each character's face, hairstyle, body type and outfit identical to it."
         )
-    lines += ["", _NO_TEXT, "", "Panels:"]
+    lines += ["", _NO_TEXT, _MODESTY, "", "Panels:"]
     if page.page_notes:
         lines.append(f"Page direction: {page.page_notes}")
     lines += [_describe_panel(p, characters) for p in page.panels]
@@ -89,5 +94,5 @@ def build_character_sheet_prompt(storyboard: Storyboard) -> str:
     ]
     for c in storyboard.characters:
         lines.append(f"- {c.name}: {c.prompt_keywords}. {c.description}")
-    lines += ["", _NO_TEXT]
+    lines += ["", _NO_TEXT, _MODESTY]
     return "\n".join(lines)
