@@ -14,10 +14,14 @@ class SessionNotFoundError(LookupError):
 
 def session_dir(session_id: str) -> Path:
     # session_id はパスに使うので UUID 以外を受け付けない（../ などの混入防止）
+    # 標準形以外（"{...}"・"urn:uuid:..."・ハイフンなし等）も UUID として解釈できてしまうので、
+    # 解釈し直した文字列と一致するものだけを通す
     try:
-        uuid.UUID(session_id)
-    except ValueError as e:
+        canonical = str(uuid.UUID(session_id))
+    except (ValueError, TypeError, AttributeError) as e:
         raise SessionNotFoundError(session_id) from e
+    if canonical != session_id:
+        raise SessionNotFoundError(session_id)
     return settings.output_path / session_id
 
 

@@ -103,5 +103,5 @@ def test_codex_command_passes_refs_and_reads_prompt_from_stdin(tmp_path):
 def test_codex_generator_reports_missing_image(tmp_path, monkeypatch):
     monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex"))
     monkeypatch.setattr(codex_cli.subprocess, "run", _fake_run(tmp_path / "codex", "t-2", False))
-    with pytest.raises(ImageGenerationError, match="画像が見つかりません"):
+    with pytest.raises(ImageGenerationError, match="画像が生成されませんでした"):
         asyncio.run(codex_cli.CodexImageGenerator().generate("draw", [], tmp_path / "p.png"))

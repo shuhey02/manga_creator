@@ -136,6 +136,8 @@ class GenerationJob(BaseModel):
     status: str = Field(default="queued", description="queued|running|done|error")
     image_urls: list[str] = []
     error: Optional[str] = None
+    # 画面の出し分け用: quota（利用枠切れ）/ auth（未ログイン）/ other
+    error_kind: Optional[str] = None
 
 
 class ExportResponse(BaseModel):

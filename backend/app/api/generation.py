@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException
 
 from ..models.schemas import GenerateCharactersRequest, GeneratePageRequest, GenerationJob
 from ..services.generation_service import generate_character_sheet, generate_page
+from ..services.image_gen import ImageGenerationError
 from ..services.session_store import (
     SessionNotFoundError,
     load_storyboard,
@@ -34,8 +35,13 @@ def _start(job: GenerationJob, work: Callable[[], Awaitable[Path]]) -> Generatio
             relative = out.relative_to(session_dir(job.session_id))
             job.image_urls = [output_url(job.session_id, relative)]
             job.status = "done"
+        except ImageGenerationError as e:
+            job.error = str(e)
+            job.error_kind = e.kind
+            job.status = "error"
         except Exception as e:
             job.error = str(e)
+            job.error_kind = "other"
             job.status = "error"
 
     _jobs[job.job_id] = job

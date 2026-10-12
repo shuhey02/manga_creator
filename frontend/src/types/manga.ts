@@ -103,6 +103,8 @@ export interface GenerationJob {
   status: GenerationStatus;
   image_urls: string[];
   error: string | null;
+  // quota（利用枠切れ）/ auth（未ログイン）/ other
+  error_kind?: "quota" | "auth" | "other" | null;
 }
 
 export interface ExportResponse {

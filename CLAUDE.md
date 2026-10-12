@@ -104,6 +104,13 @@ manga-app/
 - **3-C** 縦書き吹き出し: ✅ `services/vertical_text.py`（libraqm が無いので1文字ずつ配置。句読点は右上、長音・括弧は回転、行頭禁則はぶら下げ）。
   `SpeechBubble.orientation`（auto / vertical / horizontal、auto は縦長なら縦書き）。ネーム生成の指示も縦長・縦書きに変更
   効果音も縦書き（`Panel.sound_effect_orientation`、既定 vertical）。白抜き＋黒縁で右端に1列、吹き出しと重なるなら左端
+  英数字は2文字まで・「!?」を縦中横、3文字以上は全角で縦に並べる
+
+### エラー表示（2026-10-12）
+- 画像生成の失敗は `image_gen/codex_cli.classify_failure` で quota（利用枠切れ）/ auth（未ログイン）/ other に分け、`GenerationJob.error_kind` で画面に出し分ける。利用枠切れのときは「全ページを生成」を途中で止める
+- Claude API の失敗は `llm_service.StoryboardServiceError` で日本語にし、HTTP ステータスも合わせる
+- フロントは `api.errorMessage()` でサーバーの `detail` を表示する（axios の汎用文を出さない）
+- セッションID は UUID の標準形だけを受け付ける（`session_store.session_dir`、API 側は `api/deps.py`）
 
 ### Phase 4: 本番化基盤（必要時）
 Docker、Postgres + SQLAlchemy + Alembic、pytest / Vitest / GitHub Actions、認証、Railway / Fly.io デプロイ

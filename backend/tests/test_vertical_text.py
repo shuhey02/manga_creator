@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw
 
 from app.models.schemas import Panel, PanelLayout, SpeechBubble, SpeechBubblePosition
 from app.services.image_assembler import _draw_bubble, _draw_sfx, _get_font, _is_vertical
-from app.services.vertical_text import draw_vertical, fit_vertical, split_columns
+from app.services.vertical_text import draw_vertical, fit_vertical, split_columns, tokenize
 
 
 def _ink_bbox(img: Image.Image) -> tuple[int, int, int, int]:
@@ -17,8 +17,29 @@ def test_newline_starts_a_new_column():
     assert split_columns("勇者よ\nやっと", 10) == [list("勇者よ"), list("やっと")]
 
 
-def test_half_width_marks_become_full_width():
-    assert split_columns("え?!", 10) == [list("え？！")]
+def test_single_marks_become_full_width():
+    assert split_columns("え!", 10) == [list("え！")]
+
+
+def test_short_alnum_and_mark_pairs_share_one_cell():
+    assert tokenize("12時に3Fで!?") == ["12", "時", "に", "3F", "で", "!?"]
+
+
+def test_long_alnum_stands_upright_in_full_width():
+    assert tokenize("2026年") == list("２０２６年")
+    assert tokenize("１２時") == ["12", "時"]
+
+
+def test_mark_pair_at_column_head_hangs_on_previous_column():
+    assert split_columns("本当!?", 2) == [["本", "当", "!?"]]
+
+
+def test_tate_chu_yoko_cell_fits_in_one_column_width():
+    img = Image.new("RGB", (200, 200), "white")
+    layout = fit_vertical("12", 200, 200, _get_font, max_size=40)
+    draw_vertical(ImageDraw.Draw(img), layout, _get_font(layout.font_size), (100, 100))
+    x0, _, x1, _ = _ink_bbox(img)
+    assert x1 - x0 <= layout.font_size
 
 
 def test_fit_picks_one_column_for_short_text_in_tall_box():

@@ -7,11 +7,13 @@ ChatGPT サブスクの枠で動くため API キーは不要。1枚に数分か
 import asyncio
 import json
 import os
+import re
 import shutil
 import subprocess
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from .base import ImageGenerationError
+from .base import ImageAuthError, ImageGenerationError, ImageQuotaError
 
 # Codex エージェントに「生成だけ」させる。保存・再生成をさせると時間と枠を浪費する
 _INSTRUCTION = (
@@ -27,15 +29,69 @@ def _codex_home() -> Path:
     return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
 
 
-def _thread_id_from_events(stdout: str) -> str | None:
+@dataclass
+class _RunEvents:
+    thread_id: str | None = None
+    errors: list[str] = field(default_factory=list)
+    last_message: str = ""
+
+
+def _parse_events(stdout: str) -> _RunEvents:
+    """
+    `codex exec --json` のイベント列から、スレッドID・エラー・最後の返答を拾う。
+    エラーは {"type":"error"} と {"type":"turn.failed"} に来る（本文は API の JSON 文字列のことがある）。
+    画像ツールが断られたときは turn が成功扱いで、理由が返答文にだけ書かれることがある。
+    """
+    events = _RunEvents()
     for line in stdout.splitlines():
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if event.get("type") == "thread.started":
-            return event.get("thread_id")
-    return None
+        kind = event.get("type")
+        if kind == "thread.started":
+            events.thread_id = event.get("thread_id")
+        elif kind in ("error", "turn.failed"):
+            message = str(event.get("message") or (event.get("error") or {}).get("message", ""))
+            # 同じ失敗が error と turn.failed の両方で届くので、重複は1つにまとめる
+            if message and message not in events.errors:
+                events.errors.append(message)
+        elif kind == "item.completed":
+            item = event.get("item") or {}
+            if item.get("type") == "agent_message":
+                events.last_message = str(item.get("text", ""))
+    return events
+
+
+_QUOTA_PATTERN = re.compile(
+    r"usage limit|limit reached|hit your .{0,20}limit|rate.?limit|too many requests|quota|"
+    r"\b429\b|\"status\":\s*429|resets? in|try again (?:at|in)",
+    re.IGNORECASE,
+)
+_AUTH_PATTERN = re.compile(
+    r"\b401\b|\"status\":\s*401|unauthori[sz]ed|not logged in|log ?in again|codex login|"
+    r"authentication|token (?:has )?expired",
+    re.IGNORECASE,
+)
+_RETRY_PATTERN = re.compile(r"(?:try again|resets?)\s+(?:at|in)\s+([^.\"\n]+)", re.IGNORECASE)
+
+
+def classify_failure(text: str) -> ImageGenerationError:
+    """Codex の失敗理由の文面から、画面に出す日本語のエラーを作る"""
+    detail = text.strip()[-400:]
+    if _QUOTA_PATTERN.search(text):
+        retry = _RETRY_PATTERN.search(text)
+        when = f"（再開の目安: {retry.group(1).strip()}）" if retry else ""
+        return ImageQuotaError(
+            f"ChatGPT の画像生成の利用枠の上限に達しました{when}。時間をおいて再試行するか、"
+            f"Codex の Usage 画面で残量を確認してください。詳細: {detail}"
+        )
+    if _AUTH_PATTERN.search(text):
+        return ImageAuthError(
+            "Codex に ChatGPT アカウントでログインしていないか、ログインが切れています。"
+            f"ターミナルで `codex login` を実行してください。詳細: {detail}"
+        )
+    return ImageGenerationError(f"Codex での画像生成に失敗しました。詳細: {detail}")
 
 
 def _newest_png(directory: Path) -> Path | None:
@@ -84,16 +140,15 @@ class CodexImageGenerator:
         except subprocess.TimeoutExpired as e:
             raise ImageGenerationError(f"画像生成が {self.timeout_sec} 秒で終わりませんでした") from e
 
-        thread_id = _thread_id_from_events(proc.stdout)
-        if proc.returncode != 0 or thread_id is None:
-            tail = (proc.stderr or proc.stdout)[-800:]
-            raise ImageGenerationError(f"Codex の実行に失敗しました (exit={proc.returncode}): {tail}")
+        events = _parse_events(proc.stdout)
+        if proc.returncode != 0 or events.thread_id is None:
+            reason = "\n".join(events.errors) or proc.stderr or proc.stdout
+            raise classify_failure(reason)
 
-        generated = _newest_png(_codex_home() / "generated_images" / thread_id)
+        generated = _newest_png(_codex_home() / "generated_images" / events.thread_id)
         if generated is None:
-            raise ImageGenerationError(
-                "Codex は終了しましたが画像が見つかりません。ChatGPT の利用枠や "
-                "`codex login` の状態を確認してください。"
-            )
+            # 画像ツールが断られても turn は成功で終わり、理由は返答文に書かれる
+            reason = "\n".join(events.errors + [events.last_message]) or "画像が生成されませんでした"
+            raise classify_failure(reason)
         shutil.copyfile(generated, out_path)
         return out_path

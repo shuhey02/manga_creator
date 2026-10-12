@@ -1,32 +1,21 @@
 """
 Export API: PDF / Kindle用ZIPを生成してダウンロードするエンドポイント
 """
-import json
-from pathlib import Path
-
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from ..config import settings
-from ..models.schemas import ExportRequest, ExportResponse, Storyboard
+from ..models.schemas import ExportRequest, ExportResponse
 from ..services.export_service import create_kindle_zip, create_pdf
+from .deps import existing_session_dir, load_session_storyboard
 
 router = APIRouter(prefix="/api/export", tags=["export"])
-
-
-def _load_storyboard(session_id: str) -> Storyboard:
-    path = settings.output_path / session_id / "storyboard.json"
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="セッションが見つかりません。")
-    data = json.loads(path.read_text(encoding="utf-8"))
-    return Storyboard(**data)
 
 
 @router.post("/generate", response_model=ExportResponse)
 async def generate_export(request: ExportRequest):
     """PDFまたはCBZ(Kindle用ZIP)を生成してダウンロードURLを返す"""
-    storyboard = _load_storyboard(request.session_id)
-    session_dir = settings.output_path / request.session_id
+    session_dir = existing_session_dir(request.session_id)
+    storyboard = load_session_storyboard(request.session_id)
 
     try:
         if request.format == "pdf":
@@ -56,7 +45,7 @@ async def download_export(session_id: str, filename: str):
     if filename not in safe_names:
         raise HTTPException(status_code=400, detail="不正なファイル名です。")
 
-    file_path = settings.output_path / session_id / filename
+    file_path = existing_session_dir(session_id) / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="ファイルが見つかりません。先にエクスポートを生成してください。")
 

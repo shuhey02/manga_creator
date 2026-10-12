@@ -43,6 +43,11 @@ export function AiGenerationSection() {
 
   const fileUrl = (relative: string) => `/output/${sessionId}/${relative}?v=${imageVersion}`;
   const anyActive = Object.values(generationJobs).some(isActive);
+  // 最後に起きた利用枠切れ・未ログインのエラー（どのジョブでも同じ対処になる）
+  const blocking = Object.values(generationJobs)
+    .filter((j) => j.status === "error" && (j.error_kind === "quota" || j.error_kind === "auth"))
+    .slice(-1)[0];
+  const retryAt = blocking?.error?.match(/再開の目安: ([^）]+)/)?.[1];
   const sheet = storyboard.characters.find((c) => c.reference_image)?.reference_image;
   const sheetJob = generationJobs["characters"];
 
@@ -60,6 +65,25 @@ export function AiGenerationSection() {
           全ページを生成
         </button>
       </div>
+
+      {blocking && (
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 text-sm text-amber-900 space-y-1">
+          <p className="font-semibold">
+            {blocking.error_kind === "quota"
+              ? `ChatGPT の画像生成の利用枠の上限に達しました${retryAt ? `（再開の目安: ${retryAt}）` : ""}`
+              : "Codex に ChatGPT アカウントでログインしていません"}
+          </p>
+          <p className="text-xs">
+            {blocking.error_kind === "quota"
+              ? "時間をおいてから、もう一度生成してください。残量は Codex の Usage 画面で確認できます。"
+              : "ターミナルで codex login を実行してから、もう一度生成してください。"}
+          </p>
+          <details className="text-xs text-amber-800">
+            <summary className="cursor-pointer">詳細</summary>
+            <p className="mt-1 break-all">{blocking.error}</p>
+          </details>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* キャラ参照シート */}
@@ -101,7 +125,9 @@ export function AiGenerationSection() {
               ) : (
                 <p className="text-xs text-gray-500">{page.panels.length}コマ・未生成</p>
               )}
-              {job?.status === "error" && <p className="text-xs text-red-600">{job.error}</p>}
+              {job?.status === "error" && job.error_kind !== "quota" && job.error_kind !== "auth" && (
+                <p className="text-xs text-red-600">{job.error}</p>
+              )}
               <button
                 className="btn-secondary w-full"
                 disabled={anyActive}

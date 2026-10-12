@@ -9,6 +9,16 @@ import type {
   StoryboardResponse,
 } from "../types/manga";
 
+// サーバーが返した detail（日本語の原因と対処）を優先して取り出す。
+// axios の e.message は "Request failed with status code 401" のような汎用文しか持たない
+export const errorMessage = (e: unknown, fallback: string): string => {
+  if (axios.isAxiosError(e)) {
+    const detail = (e.response?.data as { detail?: unknown } | undefined)?.detail;
+    if (typeof detail === "string" && detail) return detail;
+  }
+  return e instanceof Error ? e.message : fallback;
+};
+
 const api = axios.create({
   baseURL: "",
   timeout: 120000, // LLM呼び出しに時間がかかるため2分

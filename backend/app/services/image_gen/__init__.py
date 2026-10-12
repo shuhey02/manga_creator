@@ -1,5 +1,5 @@
 from ...config import settings
-from .base import ImageGenerationError, ImageGenerator
+from .base import ImageAuthError, ImageGenerationError, ImageGenerator, ImageQuotaError
 from .codex_cli import CodexImageGenerator
 
 
@@ -9,4 +9,7 @@ def create_image_generator() -> ImageGenerator:
     raise ImageGenerationError(f"未対応の IMAGE_PROVIDER です: {settings.image_provider}")
 
 
-__all__ = ["ImageGenerationError", "ImageGenerator", "create_image_generator"]
+__all__ = [
+    "ImageAuthError", "ImageGenerationError", "ImageGenerator", "ImageQuotaError",
+    "create_image_generator",
+]

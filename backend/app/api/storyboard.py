@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 
 from ..config import settings
 from ..models.schemas import Storyboard, StoryboardRequest, StoryboardResponse
-from ..services.llm_service import generate_storyboard
+from ..services.llm_service import StoryboardServiceError, generate_storyboard
 from ..services.session_store import (
     SessionNotFoundError,
     create_session,
@@ -39,6 +39,8 @@ async def generate(request: StoryboardRequest):
             style=request.style,
             num_pages=request.num_pages,
         )
+    except StoryboardServiceError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:

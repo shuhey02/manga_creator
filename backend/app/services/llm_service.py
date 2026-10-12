@@ -109,6 +109,34 @@ def _build_user_prompt(title: str, story: str, genre: str, style: str, num_pages
 """
 
 
+class StoryboardServiceError(RuntimeError):
+    """Claude API 側の失敗。status_code はそのまま Web API の応答に使う"""
+
+    def __init__(self, status_code: int, message: str) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+def _explain_api_error(error: anthropic.APIError) -> StoryboardServiceError:
+    if isinstance(error, (anthropic.AuthenticationError, anthropic.PermissionDeniedError)):
+        return StoryboardServiceError(
+            401,
+            "ANTHROPIC_API_KEY が無効です（失効・削除・入力ミスなど）。backend/.env のキーを更新するか、"
+            "ネーム JSON の読み込み（Claude Code の MCP で作ったもの等）を使ってください。",
+        )
+    if isinstance(error, anthropic.RateLimitError):
+        return StoryboardServiceError(
+            429, "Anthropic API の利用制限に達しました。少し待ってから再試行してください。"
+        )
+    if isinstance(error, anthropic.NotFoundError):
+        return StoryboardServiceError(
+            400, f"モデル `{settings.claude_model}` が使えません。backend/.env の CLAUDE_MODEL を確認してください。"
+        )
+    if isinstance(error, anthropic.APIConnectionError):
+        return StoryboardServiceError(502, "Anthropic API に接続できません。ネットワークを確認してください。")
+    return StoryboardServiceError(502, f"Anthropic API でエラーが発生しました: {error}")
+
+
 def _extract_json(text: str) -> str:
     """LLM応答からJSONを抽出する（マークダウンコードブロック対応）"""
     # コードブロックを除去
@@ -143,12 +171,15 @@ async def generate_storyboard(
 
     # JSON が壊れていたら、エラー内容を添えて1回だけ直させる
     for attempt in range(2):
-        message = await client.messages.create(
-            model=settings.claude_model,
-            max_tokens=8192,
-            system=SYSTEM_PROMPT,
-            messages=messages,
-        )
+        try:
+            message = await client.messages.create(
+                model=settings.claude_model,
+                max_tokens=8192,
+                system=SYSTEM_PROMPT,
+                messages=messages,
+            )
+        except anthropic.APIError as e:
+            raise _explain_api_error(e) from e
         raw_text = message.content[0].text
         try:
             return Storyboard(**json.loads(_extract_json(raw_text)))

@@ -46,6 +46,7 @@
 
 - 1枚あたり約3〜4分。ChatGPT の利用枠を使うので、同時実行は1つに制限している
 - セリフを画像に描かせないのは、小さい日本語が崩れやすく修正も効かないため
+- ChatGPT の利用枠の上限に達すると、画像管理画面に再開の目安時刻つきの案内を出し、「全ページを生成」はそこで止まる
 - 追加の環境変数（`backend/.env`）: `IMAGE_PROVIDER=codex`、`CODEX_BIN=codex`、`IMAGE_TIMEOUT_SEC=600`、`CORS_ORIGINS`
 
 ### Claude Code から使う（MCP）

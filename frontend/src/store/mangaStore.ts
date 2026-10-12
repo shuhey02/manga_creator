@@ -111,7 +111,7 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
         currentStep: 1,
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "ネーム生成に失敗しました";
+      const msg = api.errorMessage(e, "ネーム生成に失敗しました");
       set({ error: msg });
     } finally {
       set({ isLoading: false, loadingMessage: "" });
@@ -125,7 +125,7 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
       const res = await api.importStoryboard(storyboard);
       set({ sessionId: res.session_id, storyboard: res.storyboard, currentStep: 1 });
     } catch (e: unknown) {
-      set({ error: e instanceof Error ? e.message : "ネームの読み込みに失敗しました" });
+      set({ error: api.errorMessage(e, "ネームの読み込みに失敗しました") });
     } finally {
       set({ isLoading: false, loadingMessage: "" });
     }
@@ -152,6 +152,9 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
     // サーバー側も1枚ずつしか描かないので、順に投げて進捗を見やすくする
     for (const page of storyboard.pages) {
       await get().generatePageImage(page.page_number);
+      // 利用枠切れ・未ログインは次のページでも必ず失敗するので、そこで止める
+      const kind = get().generationJobs[`page_${page.page_number}`]?.error_kind;
+      if (kind === "quota" || kind === "auth") break;
     }
   },
 
@@ -163,7 +166,7 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
       const res = await api.uploadPanelImage(sessionId, pageNum, panelNum, file);
       get().setPanelImage(pageNum, panelNum, res.image_url);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "アップロードに失敗しました";
+      const msg = api.errorMessage(e, "アップロードに失敗しました");
       set({ error: msg });
     }
   },
@@ -180,7 +183,7 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
       }
       set({ currentStep: 3 });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "ページ合成に失敗しました";
+      const msg = api.errorMessage(e, "ページ合成に失敗しました");
       set({ error: msg });
     } finally {
       set({ isLoading: false, loadingMessage: "" });
@@ -201,7 +204,7 @@ export const useMangaStore = create<MangaStore>((set, get) => ({
         currentStep: 4,
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "エクスポートに失敗しました";
+      const msg = api.errorMessage(e, "エクスポートに失敗しました");
       set({ error: msg });
     } finally {
       set({ isLoading: false, loadingMessage: "" });
@@ -230,7 +233,10 @@ async function runGenerationJob(
       putJob(job);
     }
     if (job.status === "error") {
-      set({ error: job.error ?? "画像生成に失敗しました" });
+      // 利用枠切れ・未ログインは生成欄に専用の案内を出すので、ページ上部のエラーには出さない
+      if (job.error_kind !== "quota" && job.error_kind !== "auth") {
+        set({ error: job.error ?? "画像生成に失敗しました" });
+      }
       return;
     }
     // 生成結果（generated_image・検出したコマ枠）はサーバー側の storyboard に入る
@@ -240,6 +246,6 @@ async function runGenerationJob(
       set({ storyboard: res.storyboard, imageVersion: Date.now() });
     }
   } catch (e: unknown) {
-    set({ error: e instanceof Error ? e.message : "画像生成に失敗しました" });
+    set({ error: api.errorMessage(e, "画像生成に失敗しました") });
   }
 }
