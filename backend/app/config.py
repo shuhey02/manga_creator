@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     # 画像生成: "codex" は Codex CLI の $imagegen（ChatGPT サブスク枠）を使う
     image_provider: str = "codex"
     codex_bin: str = "codex"
+    # 空なら ~/.codex/config.toml のモデルを使う。そこに ChatGPT アカウントで使えないモデルがあるときに指定する
+    codex_model: str = ""
     image_timeout_sec: int = 600
 
     @property

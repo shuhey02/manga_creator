@@ -109,9 +109,11 @@ def _newest_png(directory: Path) -> Path | None:
     return pngs[-1] if pngs else None
 
 
-def _build_command(codex_bin: str, refs: list[Path], workdir: Path) -> list[str]:
+def _build_command(codex_bin: str, refs: list[Path], workdir: Path, model: str = "") -> list[str]:
     exe = shutil.which(codex_bin) or codex_bin
     cmd = [exe, "exec", "--json", "-s", "read-only", "--skip-git-repo-check", "-C", str(workdir)]
+    if model:
+        cmd += ["-m", model]
     for ref in refs:
         cmd += ["--image", str(ref.resolve())]
     # プロンプトは stdin で渡す。Windows の .cmd 経由だと引数のクオートが壊れやすいため
@@ -120,9 +122,10 @@ def _build_command(codex_bin: str, refs: list[Path], workdir: Path) -> list[str]
 
 
 class CodexImageGenerator:
-    def __init__(self, codex_bin: str = "codex", timeout_sec: int = 600) -> None:
+    def __init__(self, codex_bin: str = "codex", timeout_sec: int = 600, model: str = "") -> None:
         self.codex_bin = codex_bin
         self.timeout_sec = timeout_sec
+        self.model = model
 
     async def generate(self, prompt: str, refs: list[Path], out_path: Path) -> Path:
         async with _lock:
@@ -130,7 +133,7 @@ class CodexImageGenerator:
 
     def _generate_sync(self, prompt: str, refs: list[Path], out_path: Path) -> Path:
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        cmd = _build_command(self.codex_bin, refs, out_path.parent)
+        cmd = _build_command(self.codex_bin, refs, out_path.parent, self.model)
         # uvicorn の Windows イベントループは asyncio のサブプロセスを扱えないので、
         # 同期 subprocess をスレッドで回す
         try:

@@ -9,9 +9,10 @@ function BubbleTypeBadge({ type }: { type: string }) {
     thought: "bg-purple-100 text-purple-700",
     shout: "bg-red-100 text-red-700",
     whisper: "bg-gray-100 text-gray-600",
+    narration: "bg-amber-100 text-amber-700",
   };
   const label: Record<string, string> = {
-    normal: "通常", thought: "思考", shout: "叫び", whisper: "ひそひそ",
+    normal: "通常", thought: "思考", shout: "叫び", whisper: "ひそひそ", narration: "ナレーション",
   };
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${map[type] ?? "bg-gray-100 text-gray-600"}`}>

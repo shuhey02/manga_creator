@@ -7,7 +7,7 @@ export interface SpeechBubblePosition {
   height: number;
 }
 
-export type BubbleType = "normal" | "thought" | "shout" | "whisper";
+export type BubbleType = "normal" | "thought" | "shout" | "whisper" | "narration";
 
 // auto は吹き出しが縦長なら縦書き、横長なら横書き
 export type BubbleOrientation = "auto" | "vertical" | "horizontal";
@@ -17,6 +17,8 @@ export interface SpeechBubble {
   type: BubbleType;
   position: SpeechBubblePosition;
   orientation?: BubbleOrientation;
+  tail?: { x: number; y: number } | null;  // しっぽを向ける先（コマ内 %）
+  font_scale?: number;  // ページで統一した文字サイズに対する倍率
 }
 
 export interface PanelLayout {

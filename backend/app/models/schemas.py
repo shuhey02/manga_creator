@@ -36,12 +36,22 @@ class SpeechBubblePosition(BaseModel):
     height: float = Field(..., ge=1, le=100)
 
 
+class TailTarget(BaseModel):
+    """吹き出しのしっぽを向ける先（話している人物の顔）。コマ内の % で、コマの左上が 0,0"""
+    x: float = Field(..., ge=0, le=100)
+    y: float = Field(..., ge=0, le=100)
+
+
 class SpeechBubble(BaseModel):
     text: str
-    type: str = Field(default="normal", description="normal|thought|shout|whisper")
+    type: str = Field(default="normal", description="normal|thought|shout|whisper|narration（枠だけ・しっぽなし）")
     position: SpeechBubblePosition
     # auto は吹き出しが縦長なら縦書き、横長なら横書き（向きを持たない既存のネームの見た目を変えないため）
     orientation: Literal["auto", "vertical", "horizontal"] = "auto"
+    # 無ければ従来どおり吹き出しの下へしっぽを出す
+    tail: TailTarget | None = None
+    # ページで統一した文字サイズに対する倍率（強調したいセリフだけ大きくする）
+    font_scale: float = Field(default=1.0, ge=0.5, le=3.0)
 
 
 class PanelLayout(BaseModel):

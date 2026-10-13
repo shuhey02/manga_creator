@@ -105,3 +105,9 @@ def test_codex_generator_reports_missing_image(tmp_path, monkeypatch):
     monkeypatch.setattr(codex_cli.subprocess, "run", _fake_run(tmp_path / "codex", "t-2", False))
     with pytest.raises(ImageGenerationError, match="画像が生成されませんでした"):
         asyncio.run(codex_cli.CodexImageGenerator().generate("draw", [], tmp_path / "p.png"))
+
+
+def test_codex_command_overrides_model_only_when_set(tmp_path):
+    assert "-m" not in codex_cli._build_command("codex", [], tmp_path)
+    cmd = codex_cli._build_command("codex", [], tmp_path, "gpt-6-astra")
+    assert cmd[cmd.index("-m") + 1] == "gpt-6-astra"

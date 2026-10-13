@@ -9,7 +9,7 @@ from typing import Optional
 from PIL import Image, ImageDraw, ImageFont
 
 from ..models.schemas import MangaPage, Panel, SpeechBubble
-from .vertical_text import draw_vertical, fit_vertical
+from .vertical_text import AWKWARD_SHRINK, draw_vertical, fit_vertical
 
 # ─── ページサイズ設定 (A4 @ 150dpi) ─────────────────────────────────────────
 PAGE_WIDTH = 1240
@@ -19,6 +19,11 @@ GUTTER = 5        # コマ間の隙間
 BORDER_W = 3      # コマ枠線の太さ
 
 # ─── 日本語フォントの候補 ─────────────────────────────────────────────────────
+# セリフは Noto Sans JP（可変フォント。太さを wght 軸で指定する）。無ければ従来の書体
+NOTO_SANS_JP_PATHS = [
+    "C:/Windows/Fonts/NotoSansJP-VF.ttf",
+    os.path.expandvars("%LOCALAPPDATA%/Microsoft/Windows/Fonts/NotoSansJP-VF.ttf"),
+]
 JP_FONT_PATHS = [
     "C:/Windows/Fonts/msgothic.ttc",
     "C:/Windows/Fonts/meiryo.ttc",
@@ -27,28 +32,63 @@ JP_FONT_PATHS = [
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
     "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
 ]
+JP_BOLD_FONT_PATHS = [
+    "C:/Windows/Fonts/meiryob.ttc",
+    "C:/Windows/Fonts/YuGothB.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc",
+]
+# 可変フォントの既定の太さは最も細い 100 なので、必ず指定する
+REGULAR_WEIGHT = 500
+BOLD_WEIGHT = 800
+# 吹き出しの文字がこれより小さくなるなら、吹き出しをコマ内で広げる
+MIN_READABLE_SIZE = 22
+BUBBLE_GROWTH = (1.0, 1.15, 1.3, 1.45, 1.6)
 
-_font_cache: dict[int, ImageFont.FreeTypeFont] = {}
+_font_cache: dict[tuple[int, bool], ImageFont.ImageFont] = {}
 
 
-def _get_font(size: int) -> ImageFont.ImageFont:
-    if size in _font_cache:
-        return _font_cache[size]
-    for path in JP_FONT_PATHS:
+def _load_font(path: str, size: int, bold: bool) -> ImageFont.FreeTypeFont:
+    font = ImageFont.truetype(path, size)
+    try:
+        font.get_variation_axes()
+    except OSError:
+        return font  # 可変フォントではない
+    font.set_variation_by_axes([BOLD_WEIGHT if bold else REGULAR_WEIGHT])
+    return font
+
+
+def _get_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
+    key = (size, bold)
+    if key in _font_cache:
+        return _font_cache[key]
+    fallbacks = JP_BOLD_FONT_PATHS + JP_FONT_PATHS if bold else JP_FONT_PATHS
+    for path in NOTO_SANS_JP_PATHS + fallbacks:
         if os.path.exists(path):
             try:
-                font = ImageFont.truetype(path, size)
-                _font_cache[size] = font
+                font = _load_font(path, size, bold)
+                _font_cache[key] = font
                 return font
             except Exception:
                 continue
     font = ImageFont.load_default()
-    _font_cache[size] = font
+    _font_cache[key] = font
     return font
 
 
+def _bold_font(size: int) -> ImageFont.ImageFont:
+    return _get_font(size, bold=True)
+
+
+def _is_emphatic(bubble: SpeechBubble) -> bool:
+    """叫び・感情が高ぶったセリフか（太字にする）"""
+    return bubble.type == "shout" or any(c in bubble.text for c in "！!")
+
+
 def _wrap_text(text: str, font: ImageFont.ImageFont, max_width: int) -> list[str]:
-    """テキストを max_width px 以内に折り返す"""
+    """テキストを max_width px 以内に折り返す。改行（\n）の位置では必ず改行する"""
+    if "\n" in text:
+        return [line for part in text.split("\n") for line in _wrap_text(part, font, max_width)]
     lines: list[str] = []
     current = ""
     for ch in text:
@@ -91,9 +131,137 @@ def _bubble_rect(bubble: SpeechBubble, px: int, py: int, pw: int, ph: int) -> tu
             int(pos.width / 100 * pw), int(pos.height / 100 * ph))
 
 
+def _grow_rect(rect: tuple[int, int, int, int], scale: float,
+               px: int, py: int, pw: int, ph: int) -> tuple[int, int, int, int]:
+    """吹き出しを中心から scale 倍に広げ、コマからはみ出さないようずらす"""
+    bx, by, bw, bh = rect
+    nw, nh = min(pw, round(bw * scale)), min(ph, round(bh * scale))
+    nx = min(max(px, bx + (bw - nw) // 2), px + pw - nw)
+    ny = min(max(py, by + (bh - nh) // 2), py + ph - nh)
+    return nx, ny, nw, nh
+
+
+def _text_inset(btype: str) -> float:
+    # 楕円の吹き出しは角が使えないので内側を狭める
+    return 0.7 if btype in ("shout", "thought") else 0.85
+
+
+Rect = tuple[int, int, int, int]
+PAD = 7
+
+
+def _rects_overlap(a: Rect, b: Rect) -> bool:
+    return a[0] < b[0] + b[2] and b[0] < a[0] + a[2] and a[1] < b[1] + b[3] and b[1] < a[1] + a[3]
+
+
+def _fit_bubble_text(bubble: SpeechBubble, rect: Rect, pad: int,
+                     get_font, px: int, py: int, pw: int, ph: int,
+                     max_size: int = 34, shrink: float = AWKWARD_SHRINK,
+                     obstacles: tuple[Rect, ...] = ()):
+    """
+    縦書きの文字が小さくなりすぎる、語の途中で折れる、枠に収まらない、のどれかなら、収まるまで吹き出しを広げる。
+    obstacles（同じコマのほかの吹き出し）と重なる広げ方は使わない。
+    広げきっても足りなければ、重ならない範囲で一番広げた大きさで描く。(吹き出しの位置と大きさ, 列分け) を返す。
+    """
+    inset = _text_inset(bubble.type)
+    readable = min(MIN_READABLE_SIZE, max_size)
+    result = None
+    for scale in BUBBLE_GROWTH:
+        grown = _grow_rect(rect, scale, px, py, pw, ph)
+        if scale > 1 and any(_rects_overlap(grown, o) for o in obstacles):
+            break
+        layout = fit_vertical(bubble.text, int(grown[2] * inset) - pad * 2,
+                              int(grown[3] * inset) - pad * 2, get_font,
+                              max_size=max_size, shrink=shrink)
+        result = (grown, layout)
+        if layout.font_size >= readable and not layout.awkward and not layout.overflow:
+            break
+    return result
+
+
+def _font_getter(bubble: SpeechBubble):
+    return _bold_font if _is_emphatic(bubble) else _get_font
+
+
+def _fit_page_bubbles(panels: list[tuple[Panel, Rect]]) -> dict[int, tuple[Rect, object]]:
+    """
+    ページ内の縦書き吹き出しの位置・大きさと列分けを決める。文字サイズはページ全体でそろえる：
+    まず吹き出しごとに収まる最大サイズを求め、その最小値（読める大きさが下限）を全吹き出しに使う。
+    返り値は id(bubble) をキーにした (吹き出しの位置と大きさ, 列分け)。
+    """
+    entries = []
+    for panel, (px, py, pw, ph) in panels:
+        rects = [_bubble_rect(b, px, py, pw, ph) for b in panel.speech_bubbles]
+        for i, bubble in enumerate(panel.speech_bubbles):
+            bx, by, bw, bh = rects[i]
+            if bw < 12 or bh < 10 or not _is_vertical(bubble, bw, bh):
+                continue
+            others = tuple(r for j, r in enumerate(rects) if j != i)
+            entries.append((bubble, rects[i], (px, py, pw, ph), others))
+    if not entries:
+        return {}
+    # font_scale で大きくする吹き出しは、倍率で割った大きさで比べる
+    natural = [_fit_bubble_text(b, r, PAD, _font_getter(b), *pr, max_size=round(34 * b.font_scale),
+                                obstacles=o)[1].font_size / b.font_scale
+               for b, r, pr, o in entries]
+    page_size = max(MIN_READABLE_SIZE, round(min(natural)))
+    return {
+        id(b): _fit_bubble_text(b, r, PAD, _font_getter(b), *pr,
+                                max_size=round(page_size * b.font_scale), shrink=1.0, obstacles=o)
+        for b, r, pr, o in entries
+    }
+
+
+TAIL_MAX = 70        # しっぽの長さの上限（px）
+TAIL_HALF_WIDTH = 10  # 吹き出しの縁でのしっぽの半幅（px）
+
+
+def _tail_target(bubble: SpeechBubble, rect: Rect, px: int, py: int, pw: int, ph: int):
+    """しっぽを向ける先（ページ上の px）。指定が無ければ従来どおり吹き出しの左寄り下方"""
+    if bubble.tail is not None:
+        return (px + bubble.tail.x / 100 * pw, py + bubble.tail.y / 100 * ph)
+    bx, by, bw, bh = rect
+    return (bx + bw / 3, by + bh + 60)
+
+
+def _tail_geometry(rect: Rect, target: tuple[float, float], oval: bool):
+    """
+    吹き出しの中心から target へ向かうしっぽの形。target が吹き出しの中にあれば None。
+    outer は縁取り込みの三角形（吹き出しの中心が底辺）、inner はつなぎ目の縁を消すための一回り小さい三角形、
+    dots は心の声の泡を置く3点。
+    """
+    bx, by, bw, bh = rect
+    cx, cy = bx + bw / 2, by + bh / 2
+    dx, dy = target[0] - cx, target[1] - cy
+    dist = math.hypot(dx, dy)
+    if dist == 0:
+        return None
+    ux, uy = dx / dist, dy / dist
+    rx, ry = bw / 2, bh / 2
+    if oval:
+        edge = 1 / math.sqrt((ux / rx) ** 2 + (uy / ry) ** 2)
+    else:
+        edge = min(rx / abs(ux) if ux else math.inf, ry / abs(uy) if uy else math.inf)
+    if dist <= edge:
+        return None
+    length = min(TAIL_MAX, max(18.0, (dist - edge) * 0.6))
+    total = edge + length
+    # 縁での幅が TAIL_HALF_WIDTH になるよう、中心側の底辺を広げる
+    base = TAIL_HALF_WIDTH * total / length
+    nx, ny = -uy, ux
+    tip = (cx + ux * total, cy + uy * total)
+
+    def triangle(half: float, back: float):
+        return [(cx + nx * half, cy + ny * half), (cx - nx * half, cy - ny * half),
+                (tip[0] - ux * back, tip[1] - uy * back)]
+
+    dots = [(cx + ux * (edge + d), cy + uy * (edge + d)) for d in (12, 28, 40)]
+    return {"outer": triangle(base, 0), "inner": triangle(base - 3 * total / length, 4), "dots": dots}
+
+
 def _draw_bubble(draw: ImageDraw.ImageDraw, bubble: SpeechBubble,
-                 px: int, py: int, pw: int, ph: int) -> None:
-    """吹き出しを描画する"""
+                 px: int, py: int, pw: int, ph: int, fitted: tuple | None = None) -> None:
+    """吹き出しを描画する。fitted はページ単位で決めた (位置と大きさ, 列分け)"""
     bx, by, bw, bh = _bubble_rect(bubble, px, py, pw, ph)
 
     if bw < 12 or bh < 10:
@@ -101,69 +269,59 @@ def _draw_bubble(draw: ImageDraw.ImageDraw, bubble: SpeechBubble,
 
     text = bubble.text
     btype = bubble.type
+    get_font = _font_getter(bubble)
 
-    pad = 7
+    pad = PAD
+    vertical = _is_vertical(bubble, bw, bh)
+    if vertical:
+        (bx, by, bw, bh), layout = fitted or _fit_bubble_text(
+            bubble, (bx, by, bw, bh), pad, get_font, px, py, pw, ph)
+
+    target = _tail_target(bubble, (bx, by, bw, bh), px, py, pw, ph)
+    oval = btype in ("shout", "thought")
+    tail = None if btype == "narration" or target is None else _tail_geometry((bx, by, bw, bh), target, oval)
+    outline_w = 3 if btype == "shout" else 2
+    if tail and btype != "thought":
+        # しっぽを先に縁取りで描き、吹き出しを重ねてから、つなぎ目の縁を白で消す
+        draw.polygon(tail["outer"], fill="white", outline="black", width=outline_w)
 
     if btype == "shout":
         # ギザギザ（星形の近似 - 楕円 + 外側の三角）
         draw.ellipse([bx, by, bx + bw, by + bh], fill="white", outline="black", width=3)
-        cx, cy = bx + bw // 2, by + bh // 2
-        rx, ry = bw // 2, bh // 2
-        spike = 12
-        for deg in range(0, 360, 45):
-            rad = math.radians(deg)
-            x1 = cx + int(rx * math.cos(rad))
-            y1 = cy + int(ry * math.sin(rad))
-            mid_rad = math.radians(deg + 22)
-            x2 = cx + int((rx + spike) * math.cos(mid_rad))
-            y2 = cy + int((ry + spike) * math.sin(mid_rad))
-            draw.line([(cx, cy), (x2, y2)], fill="white", width=2)
         draw.ellipse([bx + 4, by + 4, bx + bw - 4, by + bh - 4],
                      fill="white", outline="black", width=2)
 
     elif btype == "thought":
-        # 雲型（楕円 + 小さい泡）
-        try:
-            draw.rounded_rectangle([bx, by, bx + bw, by + bh],
-                                    radius=bh // 2, fill="white", outline="black", width=2)
-        except AttributeError:
-            draw.ellipse([bx, by, bx + bw, by + bh], fill="white", outline="black", width=2)
-        # 思考の泡
-        for i, dot_r in enumerate([7, 5, 3]):
-            dx = bx + bw // 4 + i * 6
-            dy = by + bh + 2 + i * 6
+        # 思ったこと・気づいたこと：丸い吹き出し + 考えている人物へ向かう小さい泡
+        draw.ellipse([bx, by, bx + bw, by + bh], fill="white", outline="black", width=2)
+        for (dx, dy), dot_r in zip(tail["dots"] if tail else [], [7, 5, 3]):
             draw.ellipse([dx - dot_r, dy - dot_r, dx + dot_r, dy + dot_r],
                          fill="white", outline="black", width=1)
 
+    elif btype == "narration":
+        # ナレーション（場所・時刻など）は四角い枠だけ
+        draw.rectangle([bx, by, bx + bw, by + bh], fill="white", outline="black", width=2)
+
     else:
-        # 通常の吹き出し（角丸四角形 + しっぽ）
+        # 通常の吹き出し（角丸四角形）
         try:
             draw.rounded_rectangle([bx, by, bx + bw, by + bh],
                                     radius=14, fill="white", outline="black", width=2)
         except AttributeError:
             draw.rectangle([bx, by, bx + bw, by + bh], fill="white", outline="black", width=2)
 
-        # しっぽ（三角形）
-        tail_cx = bx + bw // 3
-        tail_top = by + bh - 1
-        tail_tip = (tail_cx, by + bh + 18)
-        pts = [(tail_cx - 8, tail_top), (tail_cx + 8, tail_top), tail_tip]
-        draw.polygon(pts, fill="white")
-        draw.line([(tail_cx - 8, tail_top), tail_tip], fill="black", width=2)
-        draw.line([(tail_cx + 8, tail_top), tail_tip], fill="black", width=2)
-        # しっぽ接合部の線を消す
-        draw.line([(tail_cx - 8, tail_top), (tail_cx + 8, tail_top)], fill="white", width=3)
+    if tail and btype != "thought":
+        draw.polygon(tail["inner"], fill="white")
 
-    # テキスト描画：吹き出しに収まる最大の文字サイズを選ぶ（楕円の吹き出しは角が使えないので内側を狭める）
-    inset = 0.7 if btype in ("shout", "thought") else 0.85
+    # テキスト描画：吹き出しに収まる最大の文字サイズを選ぶ
+    inset = _text_inset(btype)
     text_x = bx + bw // 2
     text_y = by + bh // 2
-    if _is_vertical(bubble, bw, bh):
-        layout = fit_vertical(text, int(bw * inset) - pad * 2, int(bh * inset) - pad * 2, _get_font)
-        draw_vertical(draw, layout, _get_font(layout.font_size), (text_x, text_y))
+    if vertical:
+        draw_vertical(draw, layout, get_font(layout.font_size), (text_x, text_y), resize=get_font)
         return
     for font_size in range(34, 13, -2):
-        font = _get_font(font_size)
+        font = get_font(font_size)
         lines = _wrap_text(text, font, int(bw * inset) - pad * 2)
         try:
             lh = font.getbbox("あ")[3] + 3
@@ -223,7 +381,7 @@ def _draw_vertical_sfx(draw: ImageDraw.ImageDraw, panel: Panel,
 
     size = layout.font_size
     draw_vertical(draw, layout, _get_font(size), (round((x0 + x1) / 2), round((y0 + y1) / 2)),
-                  fill="white", stroke_width=max(2, size // 10), stroke_fill="black")
+                  fill="white", stroke_width=max(2, size // 10), stroke_fill="black", resize=_get_font)
 
 
 def _assemble_on_generated(generated: Image.Image, page_data: MangaPage) -> Image.Image:
@@ -237,16 +395,17 @@ def _assemble_on_generated(generated: Image.Image, page_data: MangaPage) -> Imag
     page.paste(generated.convert("RGB").resize((sw, sh), Image.LANCZOS), (ox, oy))
     draw = ImageDraw.Draw(page)
 
+    panels = []
     for panel in page_data.panels:
         lo = panel.rendered_layout or panel.layout
-        px = ox + int(lo.x / 100 * sw)
-        py = oy + int(lo.y / 100 * sh)
-        pw = int(lo.width / 100 * sw)
-        ph = int(lo.height / 100 * sh)
+        panels.append((panel, (ox + int(lo.x / 100 * sw), oy + int(lo.y / 100 * sh),
+                               int(lo.width / 100 * sw), int(lo.height / 100 * sh))))
+    fitted = _fit_page_bubbles(panels)
+    for panel, (px, py, pw, ph) in panels:
         if panel.sound_effect:
             _draw_sfx(draw, panel, px, py, pw, ph)
         for bubble in panel.speech_bubbles:
-            _draw_bubble(draw, bubble, px, py, pw, ph)
+            _draw_bubble(draw, bubble, px, py, pw, ph, fitted.get(id(bubble)))
     return page
 
 

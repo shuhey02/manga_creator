@@ -105,6 +105,12 @@ manga-app/
   `SpeechBubble.orientation`（auto / vertical / horizontal、auto は縦長なら縦書き）。ネーム生成の指示も縦長・縦書きに変更
   効果音も縦書き（`Panel.sound_effect_orientation`、既定 vertical）。白抜き＋黒縁で右端に1列、吹き出しと重なるなら左端
   英数字は2文字まで・「!?」を縦中横、3文字以上は全角で縦に並べる
+  列は空白・句読点・ひらがな→漢字/カタカナの境で改め、語の途中の改行や1文字だけの列を避ける。避けられなければ文字を縮め、それでもだめなら吹き出しを広げる
+  セリフは Noto Sans JP（可変フォント。既定の太さは 100 なので必ず指定する）。叫び（shout）と「！」を含むセリフは太字
+  文字サイズはページ内で統一（吹き出しごとに収まる最大サイズの最小値）。広げるときは同じコマのほかの吹き出しと重ねない
+  しっぽは `SpeechBubble.tail`（話し手の顔の位置、コマ内 %）へ向ける。ナレーションは `type: "narration"`（四角・しっぽなし）
+  吹き出しの種類：セリフ＝`normal`（角丸＋しっぽ）、思ったこと・気づいたこと＝`thought`（丸＋泡）、時系列・事実・情報＝`narration`（四角）
+- 画像生成のモデルは `~/.codex/config.toml` に従う。そこに ChatGPT アカウントで使えないモデルがあるときは `.env` の `CODEX_MODEL` で上書きする
 
 ### 微修正（2026-10-12）
 - ネームの部分修正は `services/storyboard_edit.py`（MCP の update_* ツールが呼ぶ）。絵に関わる項目（`ART_FIELDS`）を変えたら `needs_redraw` を返す
